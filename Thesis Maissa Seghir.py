@@ -59,6 +59,23 @@ plt.xlabel('house age')
 plt.ylabel('Density')
 #plt.show()#remove hashtag if you want to see this plot, I personally dont want to see this plot every time i run the code
 
+#check missing values
+pd.set_option('display.max_columns', None)
+pd.set_option('display.max_rows', None)
+
+missing_value_percentages = df.isnull().mean() * 100
+missing_value_percentages = missing_value_percentages.sort_values(ascending=False)
+
+print(missing_value_percentages)
+
+#drop duplicates and high %, except for columns that have missing columns for a reason (example, an empty value in year of demolition means the house is still standing)
+
+threshold = 85
+df = df.loc[:, missing_value_percentages <= threshold]
+df.to_csv('Thesis DSS.csv', index=False)
+
+
+
 
 
 
