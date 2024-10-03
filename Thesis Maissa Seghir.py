@@ -76,7 +76,7 @@ drop = ['REkey_vicncn', 'ID_Huurovereenkomst', 'VIBDMEAS_Huurobject_id', 'VICDCO
 df = df.drop(columns=[col for col in drop if col in df.columns])
 df.to_csv('thesis DSS.csv', index=False)
 
-
+print(df.head())
 
 
 
