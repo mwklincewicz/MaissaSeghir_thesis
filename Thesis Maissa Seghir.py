@@ -69,10 +69,13 @@ missing_value_percentages = missing_value_percentages.sort_values(ascending=Fals
 print(missing_value_percentages)
 
 #drop duplicates and high %, except for columns that have missing columns for a reason (example, an empty value in year of demolition means the house is still standing)
-
+#And drop duplicates
 threshold = 85
 df = df.loc[:, missing_value_percentages <= threshold]
-df.to_csv('Thesis DSS.csv', index=False)
+drop = ['REkey_vicncn', 'ID_Huurovereenkomst', 'VIBDMEAS_Huurobject_id', 'VICDCONDCALC_ID', 'id_huurovereenkomst1', 'id_huurovereenkomst2']
+df = df.drop(columns=[col for col in drop if col in df.columns])
+df.to_csv('thesis DSS.csv', index=False)
+
 
 
 
