@@ -1,5 +1,6 @@
 #Importing nessecary libraries
 import pandas as pd 
+import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 from datetime import datetime
@@ -60,7 +61,7 @@ plt.ylabel('Density')
 #plt.show()#remove hashtag if you want to see this plot, I personally dont want to see this plot every time i run the code
 
 #check missing values
-pd.set_option('display.max_columns', None)
+pd.set_option('display.max_columns', None) #because of the amount of columns i dont want to see 10 of the 67, i want to see all code.
 pd.set_option('display.max_rows', None)
 
 missing_value_percentages = df.isnull().mean() * 100
@@ -74,13 +75,30 @@ threshold = 85
 df = df.loc[:, missing_value_percentages <= threshold]
 drop = ['REkey_vicncn', 'ID_Huurovereenkomst', 'VIBDMEAS_Huurobject_id', 'VICDCONDCALC_ID', 'id_huurovereenkomst1', 'id_huurovereenkomst2']
 df = df.drop(columns=[col for col in drop if col in df.columns])
+
+#print(df.head()) #remove hashtag if you want to see this code. 
+
+#Treating missing values by data imputation 
+
+#Also, handling values that are empty but should be 0 (for example, an empty cell in the 3rd bedroom does not mean its unknown how big the bedroom is, it means there is no bedroom so it should be 0)
+rooms = ["Zolder", "3e slaapkamer", "Verwarmde overige ruimten", "2e Slaapkamer", 
+                      "Aparte douche/lavet+douche 1", "Bergruimte/schuur 1", 
+                      "Wastafel/bidet/lavet/fontein", "Verwarmde vertrekken", "Totaal overige ruimtes", 
+                      "1e slaapkamer", "Keuken", "Badkamer/doucheruimte 1", 
+                      "Totaal kamers", "Woonkamer", "Toilet (Sanitair 1)"]
+
+df[rooms] = df[rooms].fillna(0)
+
+#handling values that are 0, but should be missing instead (example: WOZ-value cannot be 0, this would mean the house is free)
+prices = ["WOZ-waarde", "WOZ waarde (WWS)", "Marktwaarde", "Leegwaarde", 
+                           "Historische kostprijs", "WOZ waarde per m2", 
+                           "WOZ waarde per m2 (WWS)", "Streefhuur", "Markthuur"]
+
+
+df[prices] = df[prices].replace(0, np.nan)
+
+#check missing values again
+print(missing_value_percentages)
+
+#write to .csv file
 df.to_csv('thesis DSS.csv', index=False)
-
-print(df.head())
-
-
-
-
-
-
-
