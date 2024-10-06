@@ -61,16 +61,24 @@ plt.ylabel('Density')
 #plt.show()#remove hashtag if you want to see this plot, I personally dont want to see this plot every time i run the code
 
 #check missing values
-pd.set_option('display.max_columns', None) #because of the amount of columns i dont want to see 10 of the 67, i want to see all code.
-pd.set_option('display.max_rows', None)
+import pandas as pd
 
-missing_value_percentages = df.isnull().mean() * 100
-missing_value_percentages = missing_value_percentages.sort_values(ascending=False)
+def display_missing_values(df, max_columns=None, max_rows=None):
+    pd.set_option('display.max_columns', max_columns)
+    pd.set_option('display.max_rows', max_rows)
+    
+ 
+    missing_value_percentages = df.isnull().mean() * 100
+    missing_value_percentages = missing_value_percentages.sort_values(ascending=False)
+    
+    print(missing_value_percentages)
 
-print(missing_value_percentages)
+#display_missing_values(df, max_columns=None, max_rows=None) #remove hashtag if you want to see this code. 
+
 
 #drop duplicates and high %, except for columns that have missing columns for a reason (example, an empty value in year of demolition means the house is still standing)
 #And drop duplicates
+missing_value_percentages = df.isnull().mean() * 100
 threshold = 85
 df = df.loc[:, missing_value_percentages <= threshold]
 drop = ['REkey_vicncn', 'ID_Huurovereenkomst', 'VIBDMEAS_Huurobject_id', 'VICDCONDCALC_ID', 'id_huurovereenkomst1', 'id_huurovereenkomst2']
@@ -127,3 +135,9 @@ df[real_prices] = df[real_prices].replace(0, np.nan)
 
 
 df.to_csv('cleaned_data.csv', index=False)
+
+cleaned_df =pd.read_csv('cleaned_data.csv')
+
+display_missing_values(cleaned_df, max_columns=None, max_rows=None)
+
+
