@@ -126,6 +126,11 @@ real_rooms = [col for col in rooms if col in df.columns]
 #adding a placeholder of 0 for the non excisting rooms
 df[real_rooms] = df[real_rooms].fillna(0)
 
+#adding a binary flag column for every room, so we know which rooms dont exist in which house
+for room in real_rooms:
+    df[f'{room} flag'] = (df[room] == 0).astype(int)
+
+
 #handling values that are 0, but should be missing instead (example: WOZ-value cannot be 0, this would mean the house is free)
 prices = ["WOZ-waarde", "WOZ waarde (WWS)", "Marktwaarde", "Leegwaarde", 
                            "Historische kostprijs", "WOZ waarde per m2", 
