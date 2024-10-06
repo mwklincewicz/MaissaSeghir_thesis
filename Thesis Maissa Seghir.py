@@ -138,8 +138,8 @@ df[real_prices] = df[real_prices].replace(0, np.nan)
 #adding a binary flag as a new column, so the model can interpret houses that arent broken down or sold
 df['Year of demolition flag'] = df['Year of demolition'].isnull().astype(int)
 
-#adding a placeholder for year of demolition, which is 9999-12-31, i removed it earlier for analytical purposes but i want it back 
-df['Year of demolition'].fillna(pd.Timestamp('9999-12-31'), inplace=True)
+#adding a placeholder for year of demolition,  i removed it earlier for analytical purposes but i want it back, however 9999 is out of bounds so i have to keep it within bounds. 
+df['Year of demolition'].fillna(pd.Timestamp('2100-12-31'), inplace=True)
 
 df.to_csv('cleaned_data.csv', index=False)
 
