@@ -81,22 +81,49 @@ df = df.drop(columns=[col for col in drop if col in df.columns])
 #Treating missing values by data imputation 
 
 #Also, handling values that are empty but should be 0 (for example, an empty cell in the 3rd bedroom does not mean its unknown how big the bedroom is, it means there is no bedroom so it should be 0)
-rooms = ["Zolder", "3e slaapkamer", "Verwarmde overige ruimten", "2e Slaapkamer", 
+rooms = ["Zolder", "Verwarmde overige ruimten", "2e Slaapkamer", 
                       "Aparte douche/lavet+douche 1", "Bergruimte/schuur 1", 
-                      "Wastafel/bidet/lavet/fontein", "Verwarmde vertrekken", "Totaal overige ruimtes", 
-                      "1e slaapkamer", "Keuken", "Badkamer/doucheruimte 1", 
+                     "Verwarmde vertrekken", "Totaal overige ruimtes", 
+                       "Keuken", "Badkamer/doucheruimte 1", 
                       "Totaal kamers", "Woonkamer", "Toilet (Sanitair 1)"]
 
-df[rooms] = df[rooms].fillna(0)
+real_rooms = [col for col in rooms if col in df.columns]
+
+df[real_rooms] = df[real_rooms].fillna(0)
 
 #handling values that are 0, but should be missing instead (example: WOZ-value cannot be 0, this would mean the house is free)
 prices = ["WOZ-waarde", "WOZ waarde (WWS)", "Marktwaarde", "Leegwaarde", 
                            "Historische kostprijs", "WOZ waarde per m2", 
                            "WOZ waarde per m2 (WWS)", "Streefhuur", "Markthuur"]
 
+real_prices = [col for col in prices if col in df.columns]
 
-df[prices] = df[prices].replace(0, np.nan)
+df[real_prices] = df[real_prices].replace(0, np.nan)
 
 
+df.to_csv('cleaned_data.csv', index=False)
+
+#Treating missing values by data imputation 
+
+#Also, handling values that are empty but should be 0 (for example, an empty cell in the 3rd bedroom does not mean its unknown how big the bedroom is, it means there is no bedroom so it should be 0)
+rooms = ["Zolder", "Verwarmde overige ruimten", "2e Slaapkamer", 
+                      "Aparte douche/lavet+douche 1", "Bergruimte/schuur 1", 
+                     "Verwarmde vertrekken", "Totaal overige ruimtes", 
+                       "Keuken", "Badkamer/doucheruimte 1", 
+                      "Totaal kamers", "Woonkamer", "Toilet (Sanitair 1)"]
+
+real_rooms = [col for col in rooms if col in df.columns]
+
+df[real_rooms] = df[real_rooms].fillna(0)
+
+#handling values that are 0, but should be missing instead (example: WOZ-value cannot be 0, this would mean the house is free)
+prices = ["WOZ-waarde", "WOZ waarde (WWS)", "Marktwaarde", "Leegwaarde", 
+                           "Historische kostprijs", "WOZ waarde per m2", 
+                           "WOZ waarde per m2 (WWS)", "Streefhuur", "Markthuur"]
+
+real_prices = [col for col in prices if col in df.columns]
+
+df[real_prices] = df[real_prices].replace(0, np.nan,errors='ignore')
 
 
+df.to_csv('cleaned_data.csv', index=False)
