@@ -123,6 +123,7 @@ rooms = ["Zolder", "Verwarmde overige ruimten", "2e Slaapkamer",
 
 real_rooms = [col for col in rooms if col in df.columns]
 
+#adding a placeholder of 0 for the non excisting rooms
 df[real_rooms] = df[real_rooms].fillna(0)
 
 #handling values that are 0, but should be missing instead (example: WOZ-value cannot be 0, this would mean the house is free)
@@ -133,6 +134,12 @@ prices = ["WOZ-waarde", "WOZ waarde (WWS)", "Marktwaarde", "Leegwaarde",
 real_prices = [col for col in prices if col in df.columns]
 
 df[real_prices] = df[real_prices].replace(0, np.nan)
+
+#adding a binary flag as a new column, so the model can interpret houses that arent broken down or sold
+df['Year_of_demolition_flag'] = df['Year_of_demolition'].isnull().astype(int)
+
+#adding a placeholder for year of demolition, which is 9999-12-31, i removed it earlier for analytical purposes but i want it back 
+df['Year_of_demolition'].fillna(pd.Timestamp('9999-12-31'), inplace=True)
 
 
 df.to_csv('cleaned_data.csv', index=False)
