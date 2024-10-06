@@ -73,7 +73,7 @@ def display_missing_values(df, max_columns=None, max_rows=None):
     
     print(missing_value_percentages)
 
-#display_missing_values(df, max_columns=None, max_rows=None) #remove hashtag if you want to see this code. 
+#print(display_missing_values(df, max_columns=None, max_rows=None)) #remove hashtag if you want to see this code. 
 
 
 #drop duplicates and high %, except for columns that have missing columns for a reason (example, an empty value in year of demolition means the house is still standing)
@@ -115,10 +115,11 @@ df.to_csv('cleaned_data.csv', index=False)
 
 #Also, handling values that are empty but should be 0 (for example, an empty cell in the 3rd bedroom does not mean its unknown how big the bedroom is, it means there is no bedroom so it should be 0)
 rooms = ["Zolder", "Verwarmde overige ruimten", "2e Slaapkamer", 
-                      "Aparte douche/lavet+douche 1", "Bergruimte/schuur 1", 
-                     "Verwarmde vertrekken", "Totaal overige ruimtes", 
-                       "Keuken", "Badkamer/doucheruimte 1", 
-                      "Totaal kamers", "Woonkamer", "Toilet (Sanitair 1)"]
+                    "Aparte douche/lavet+douche 1", "Bergruimte/schuur 1", "3e Slaapkamer"," Wastafel/bidet/lavet/fontein 1",
+                    "1e Slaapkamer",  
+                    "Verwarmde vertrekken", "Totaal overige ruimtes", 
+                    "Keuken", "Badkamer/doucheruimte 1", 
+                    "Totaal kamers", "Woonkamer", "Toilet (Sanitair 1)"]
 
 real_rooms = [col for col in rooms if col in df.columns]
 
@@ -138,6 +139,6 @@ df.to_csv('cleaned_data.csv', index=False)
 
 cleaned_df =pd.read_csv('cleaned_data.csv')
 
-display_missing_values(cleaned_df, max_columns=None, max_rows=None)
+print(display_missing_values(cleaned_df, max_columns=None, max_rows=None))
 
 
