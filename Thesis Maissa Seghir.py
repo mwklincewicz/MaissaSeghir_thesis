@@ -97,8 +97,6 @@ prices = ["WOZ-waarde", "WOZ waarde (WWS)", "Marktwaarde", "Leegwaarde",
 
 df[prices] = df[prices].replace(0, np.nan)
 
-#check missing values again
-print(missing_value_percentages)
 
-#write to .csv file
-df.to_csv('thesis DSS.csv', index=False)
+
+
