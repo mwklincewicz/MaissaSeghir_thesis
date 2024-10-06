@@ -123,7 +123,7 @@ prices = ["WOZ-waarde", "WOZ waarde (WWS)", "Marktwaarde", "Leegwaarde",
 
 real_prices = [col for col in prices if col in df.columns]
 
-df[real_prices] = df[real_prices].replace(0, np.nan,errors='ignore')
+df[real_prices] = df[real_prices].replace(0, np.nan)
 
 
 df.to_csv('cleaned_data.csv', index=False)
