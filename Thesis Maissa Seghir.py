@@ -115,7 +115,7 @@ df.to_csv('cleaned_data.csv', index=False)
 
 #Also, handling values that are empty but should be 0 (for example, an empty cell in the 3rd bedroom does not mean its unknown how big the bedroom is, it means there is no bedroom so it should be 0)
 rooms = ["Zolder", "Verwarmde overige ruimten", "2e Slaapkamer", 
-                    "Aparte douche/lavet+douche 1", "Bergruimte/schuur 1", "3e Slaapkamer"," Wastafel/bidet/lavet/fontein 1",
+                    "Aparte douche/lavet+douche 1", "Bergruimte/schuur 1", "3e Slaapkamer","Wastafel/bidet/lavet/fontein 1",
                     "1e Slaapkamer",  
                     "Verwarmde vertrekken", "Totaal overige ruimtes", 
                     "Keuken", "Badkamer/doucheruimte 1", 
