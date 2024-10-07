@@ -152,4 +152,9 @@ cleaned_df =pd.read_csv('cleaned_data.csv')
 
 print(display_missing_values(cleaned_df, max_columns=None, max_rows=None))
 
+#replace anything anything below 5% missing data with mean imputation
+
+#anything above 5% with knn imputation, except reden_opzegging,Ontvangstdatum_opzegging and contract_duur. As these are only empty for the unlabeled data
+#labeled data doesnt have empty values for these columns. They are meant to be empty and not missing
+#So basically, when i split the data these three columns automatically will not have any missing values in the labelled dataset :)
 
