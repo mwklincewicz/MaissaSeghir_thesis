@@ -87,6 +87,7 @@ df = df.drop(columns=[col for col in drop if col in df.columns])
 #print(df.head()) #remove hashtag if you want to see this code. 
 
 #Treating missing values by data imputation 
+#A lot of conditional missing data, e.g. a parking spot is not going to have an energy label obviously, so we will need to treat every column type seperately
 
 #Also, handling values that are empty but should be 0 (for example, an empty cell in the 3rd bedroom does not mean its unknown how big the bedroom is, it means there is no bedroom so it should be 0)
 rooms = ["Zolder", "Verwarmde overige ruimten", "2e Slaapkamer", 
@@ -112,6 +113,7 @@ df[real_prices] = df[real_prices].replace(0, np.nan)
 df.to_csv('cleaned_data.csv', index=False)
 
 #Treating missing values by data imputation 
+
 
 #Also, handling values that are empty but should be 0 (for example, an empty cell in the 3rd bedroom does not mean its unknown how big the bedroom is, it means there is no bedroom so it should be 0)
 rooms = ["Zolder", "Verwarmde overige ruimten", "2e Slaapkamer", 
@@ -146,15 +148,20 @@ df['Year of demolition flag'] = df['Year of demolition'].isnull().astype(int)
 #adding a placeholder for year of demolition,  i removed it earlier for analytical purposes but i want it back, however 9999 is out of bounds so i have to keep it within bounds. 
 df['Year of demolition'].fillna(pd.Timestamp('2100-12-31'), inplace=True)
 
+#non residential properties dont have an energylabel, so ill add a placeholder in that column and a binary flag if its empty 
+#before Energielabel is missing about 20% of data
+df['Energielabel'] = df['Energielabel'].isnull().astype(int)
+condition = df['Omschrijving_vastgoed'].isin(['Woonwagen', 'Woonwagenstandplaats', 'Parkeerplaats auto','Parkeerplaats overdekt', 'Garage','Berging'])
+df.loc[condition & df['Energielabel'].isna(), 'Energielabel'] = 'N/A'
+
+
+
+
+
 df.to_csv('cleaned_data.csv', index=False)
 
 cleaned_df =pd.read_csv('cleaned_data.csv')
 
 print(display_missing_values(cleaned_df, max_columns=None, max_rows=None))
 
-#replace anything anything below 5% missing data with mean imputation
-
-#anything above 5% with knn imputation, except reden_opzegging,Ontvangstdatum_opzegging and contract_duur. As these are only empty for the unlabeled data
-#labeled data doesnt have empty values for these columns. They are meant to be empty and not missing
-#So basically, when i split the data these three columns automatically will not have any missing values in the labelled dataset :)
 
