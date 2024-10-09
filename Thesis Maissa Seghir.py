@@ -150,7 +150,8 @@ df['Year of demolition'].fillna(pd.Timestamp('2100-12-31'), inplace=True)
 
 #non residential properties dont have an energylabel, so ill add a placeholder in that column and a binary flag if its empty 
 #before Energielabel is missing about 20% of data
-df['Energielabel'] = df['Energielabel'].isnull().astype(int)
+df['Energielabel flag'] = df['Energielabel'].isnull().astype(int)
+
 condition = df['Omschrijving_Vastgoed'].isin(['Woonwagen', 'Woonwagenstandplaats', 'Parkeerplaats auto','Parkeerplaats overdekt', 'Garage','Berging'])
 df.loc[condition & df['Energielabel'].isna(), 'Energielabel'] = 'N/A'
 
