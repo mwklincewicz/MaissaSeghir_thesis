@@ -153,7 +153,7 @@ df['Year of demolition'].fillna(pd.Timestamp('2100-12-31'), inplace=True)
 df['Energielabel'].replace('', np.nan, inplace=True)
 df['Energielabel flag'] = df['Energielabel'].isnull().astype(int)
 condition = df['Omschrijving_Vastgoed'].isin(['Woonwagen', 'Woonwagenstandplaats', 'Parkeerplaats auto','Parkeerplaats overdekt', 'Garage','Berging'])
-df.loc[condition & df['Energielabel'].isna(), 'Energielabel'] = 'N/A'
+df.loc[condition & df['Energielabel'].isna(), 'Energielabel'] = 'N.v.t.'
 
 
 
