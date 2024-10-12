@@ -152,9 +152,14 @@ df['Year of demolition'].fillna(pd.Timestamp('2100-12-31'), inplace=True)
 #before Energielabel is missing about 20% of data
 df['Energielabel'].replace('', np.nan, inplace=True)
 df['Energielabel flag'] = df['Energielabel'].isnull().astype(int)
-condition = df['Omschrijving_Vastgoed'].isin(['Woonwagen', 'Woonwagenstandplaats', 'Parkeerplaats auto','Parkeerplaats overdekt', 'Garage','Berging'])
-df.loc[condition & df['Energielabel'].isna(), 'Energielabel'] = 'N.v.t.'
+condition = df['Omschrijving_Vastgoed'].isin(['Woonwagen', 'Woonwagenstandplaats', 
+'Parkeerplaats auto','Parkeerplaats overdekt', 'Garage','Berging','Brede school',
+'Cultuur ruimte','Dagbestedingsruimte','Horeca','Kantoorruimte','Hospice','Maatschappelijk werkruimte wijk-/buurtgericht',
+'Opvangcentrum','Praktijkruimte','Psychische zorginstelling','Schoolgebouw','Verpleeghuis','Verstandelijk gehandicapten instelling'
+'Welzijnswerkruimte wijk-/buurtgericht','Winkelruimte','Zorgsteunpunt'])
 
+df.loc[condition & df['Energielabel'].isna(), 'Energielabel'] = 'N.v.t.'
+#now missing % in energielabel is 9%
 
 
 df.to_csv('cleaned_data.csv', index=False)
