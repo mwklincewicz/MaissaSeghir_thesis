@@ -149,6 +149,7 @@ df['Year of demolition flag'] = df['Year of demolition'].isnull().astype(int)
 df['Year of demolition'].fillna(pd.Timestamp('2100-12-31'), inplace=True)
 
 #non residential properties dont have an energylabel, so ill add a placeholder in that column and a binary flag if its empty 
+#some residental properties dont require an energylabel by law (this changed recently but the energylabels havent been added to the data yet)
 #before Energielabel is missing about 20% of data
 df['Energielabel'].replace('', np.nan, inplace=True)
 df['Energielabel flag'] = df['Energielabel'].isnull().astype(int)
@@ -156,10 +157,10 @@ condition = df['Omschrijving_Vastgoed'].isin(['Woonwagen', 'Woonwagenstandplaats
 'Parkeerplaats auto','Parkeerplaats overdekt', 'Garage','Berging','Brede school',
 'Cultuur ruimte','Dagbestedingsruimte','Horeca','Kantoorruimte','Hospice','Maatschappelijk werkruimte wijk-/buurtgericht',
 'Opvangcentrum','Praktijkruimte','Psychische zorginstelling','Schoolgebouw','Verpleeghuis','Verstandelijk gehandicapten instelling'
-'Welzijnswerkruimte wijk-/buurtgericht','Winkelruimte','Zorgsteunpunt'])
+'Welzijnswerkruimte wijk-/buurtgericht','Winkelruimte','Zorgsteunpunt','Wijksportvoorziening'])
 
 df.loc[condition & df['Energielabel'].isna(), 'Energielabel'] = 'N.v.t.'
-#now missing % in energielabel is 9%
+#now missing % in energielabel is 8,5%
 
 
 df.to_csv('cleaned_data.csv', index=False)
