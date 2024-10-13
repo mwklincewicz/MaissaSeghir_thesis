@@ -162,6 +162,14 @@ condition = df['Omschrijving_Vastgoed'].isin(['Woonwagen', 'Woonwagenstandplaats
 df.loc[condition & df['Energielabel'].isna(), 'Energielabel'] = 'N.v.t.'
 #now missing % in energielabel is 8,5%
 
+#For the properties named as "kamer" it means this is a room, individual rooms do not have an energylabel, but the property itsself does
+#So for every "Complex" (which is the overarching property in which multiple rooms are being rented) im looking up its energylabel in the Dutch Cadastre 
+#which is basically a land registry 
+#im doing this for all complexes with multiple rooms
+df['Energielabel'].replace('', np.nan, inplace=True)
+df.loc[df['Energielabel'].isna() & (df['complex'] == 1193), 'Energielabel'] = 'A'
+
+
 
 df.to_csv('cleaned_data.csv', index=False)
 
