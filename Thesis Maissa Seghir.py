@@ -168,15 +168,18 @@ df.loc[condition & df['Energielabel'].isna(), 'Energielabel'] = 'N.v.t.'
 #im doing this for all complexes with multiple rooms
 df['Energielabel'].replace('', np.nan, inplace=True)
 df.loc[df['Energielabel'].isna() & (df['complexnummer'] == 1193.0), 'Energielabel'] = 'A'
-
 df.loc[df['Energielabel'].isna() & (df['complexnummer'] == 683.0), 'Energielabel'] = 'A'
-
+df.loc[df['Energielabel'].isna() & (df['complexnummer'] == 1256.0), 'Energielabel'] = 'A'
+df.loc[df['Energielabel'].isna() & (df['complexnummer'] == 345.0), 'Energielabel'] = 'D'
+df.loc[df['Energielabel'].isna() & (df['complexnummer'] == 7031.0), 'Energielabel'] = 'D'
+df.loc[df['Energielabel'].isna() & (df['complexnummer'] == 344.0), 'Energielabel'] = 'B'
+df.loc[df['Energielabel'].isna() & (df['complexnummer'] == 6.0), 'Energielabel'] = 'A'
+df.loc[df['Energielabel'].isna() & (df['complexnummer'] == 1230.0), 'Energielabel'] = 'A+'
 df.loc[df['Energielabel'].isna() & (df['complexnummer'] == 1257.0), 'Energielabel'] = 'N.v.t.'
 
 #Complex 2082 has two different energylabels so i have to manually put in the adress
 
 df.loc[df['Energielabel'].isna() & (df['Straat'] == 'Bergweg 8'), 'Energielabel'] = 'D'
-
 df.loc[df['Energielabel'].isna() & (df['Straat'] == 'Bergweg 300'), 'Energielabel'] = 'G'
 
 df.to_csv('cleaned_data.csv', index=False)
