@@ -199,10 +199,6 @@ df.loc[df['Energielabel'].isna() & (df['Straat'] == 'Bergweg 300'), 'Energielabe
 #and not conditionally missing, so for this I can do something like KNN imputation 
 #using GeeksforGeeks code for this, source= https://www.geeksforgeeks.org/python-imputation-using-the-knnimputer/
 
-import pandas as pd
-from sklearn.impute import KNNImputer
-from sklearn.preprocessing import LabelEncoder
-
 #labelencoder because KNN works with numerical data, i havent found a good way to do it with categorial data so im just encoding it first
 le = LabelEncoder()
 df['Energielabel_encoded'] = le.fit_transform(df['Energielabel'].astype(str))
@@ -218,7 +214,9 @@ imputer = KNNImputer(n_neighbors=5, weights="uniform")  # choose n=5 cause this 
 imputed_data = imputer.fit_transform(features)
 
 # Replace the imputed Energielabel values in the original df
-df['Energielabel_encoded'] = imputed_data[:, 0] 
+df['Energielabel_encoded'] = np.where(df['Energielabel_encoded'].isna(), 
+                                      imputed_data[:, 2], 
+                                      df['Energielabel_encoded'])
 
 # Decode the imputed numeric values back to their original categorical values, i dont really have to do this one cause the algoritmh doesnt care if its encoded or not
 #But i will do it anyway to make the code more understandable. Trees work well with categories so its okay 
@@ -227,9 +225,9 @@ df['Energielabel'] = le.inverse_transform(df['Energielabel_encoded'].round().ast
 # Check changes
 print(df[['Energielabel', 'Energielabel_encoded']].head())  # Display some rows to verify
 
-
+#write to cleaned data
 df.to_csv('cleaned_data.csv', index=False)
-
 cleaned_df =pd.read_csv('cleaned_data.csv')
 
+#print current missing values
 print(display_missing_values(cleaned_df, max_columns=None, max_rows=None))
