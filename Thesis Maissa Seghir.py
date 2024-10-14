@@ -232,10 +232,20 @@ df['Energielabel'] = le.inverse_transform(df['Energielabel_encoded'].round().ast
 df['Afmelddatum_VABI flag'] = df['Amfelddatum_VABI'].isnull().astype(int)
 df['Amfelddatum_VABI'].fillna(pd.Timestamp('2100-12-31'), inplace=True)
 
+#Going to do some conditional imputation for Omschrijving_Vastgoed, Eengezins_Meergezins, VERA_Type
+#If the "Contracttype" is "Woonwagen/standplaats" the Omschrijving vastgoed can only be Woonwagen on standplaats. If there are any rooms its woonwagen
+#if no rooms omschrijving vastgoed is woonwagenstandplaats
+# Conditional imputation for 'Omschrijving_Vastgoed' based on 'Contracttype' and room availability
+def impute_omschrijving_vastgoed(row):
+    if row['Contractsoort'] == 'Woonwagen/Standplaats':
+        if (row['1e Slaapkamer'] > 0) or (row['2e Slaapkamer'] > 0) or (row['3e Slaapkamer'] > 0):
+            return 'Woonwagen'
+        else:
+            return 'Woonwagenstandplaats'
+    return row['Omschrijving_Vastgoed']  
 
-
-
-
+# Apply the function 
+df['Omschrijving_Vastgoed'] = df.apply(impute_omschrijving_vastgoed, axis=1)
 
 #write to cleaned data
 df.to_csv('cleaned_data.csv', index=False)
