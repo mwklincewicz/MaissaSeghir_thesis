@@ -207,7 +207,7 @@ df['Energielabel_encoded'] = le.fit_transform(df['Energielabel'].astype(str))
 df.loc[df['Energielabel'].isna(), 'Energielabel_encoded'] = np.nan
 
 #I want to use the columns house age and WOZ-value, since there are numerical and usually have high correlation with energie label, old houses and cheaper houses usually have lower energylabels then expensive and new houses
-features = df[['WOZ waarde','Huis_leeftijd']]  
+features = df[['WOZ waarde','Huis_leeftijd','Energielabel_encoded']]  
 
 #Impute
 imputer = KNNImputer(n_neighbors=5, weights="uniform")  # choose n=5 cause this is usually the default
