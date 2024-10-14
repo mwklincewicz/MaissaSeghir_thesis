@@ -88,7 +88,7 @@ df = df.drop(columns=[col for col in drop if col in df.columns])
 #print(df.head()) #remove hashtag if you want to see this code. 
 
 #making my binary target variable
-df['Target'] = df['Contract_duur'].apply(lambda x: '<=3' if x <= 3 else '>3')
+df['Target'] = df['Contract_duur'].apply(lambda x: '<=3' if x <= 3 else '>3' if pd.notnull(x) else '')
 
 #Treating missing values by data imputation 
 #A lot of conditional missing data, e.g. a parking spot is not going to have an energy label obviously, so we will need to treat every column type seperately
@@ -226,6 +226,14 @@ df['Energielabel'] = le.inverse_transform(df['Energielabel_encoded'].round().ast
 
 # Check changes
 print(df[['Energielabel', 'Energielabel_encoded']].head())  # Display some rows to verify
+
+
+
+
+
+
+
+
 
 #write to cleaned data
 df.to_csv('cleaned_data.csv', index=False)
