@@ -63,7 +63,6 @@ plt.ylabel('Density')
 #plt.show()#remove hashtag if you want to see this plot, I personally dont want to see this plot every time i run the code
 
 #check missing values
-import pandas as pd
 
 def display_missing_values(df, max_columns=None, max_rows=None):
     pd.set_option('display.max_columns', max_columns)
@@ -87,6 +86,9 @@ drop = ['REkey_vicncn', 'ID_Huurovereenkomst', 'VIBDMEAS_Huurobject_id', 'VICDCO
 df = df.drop(columns=[col for col in drop if col in df.columns])
 
 #print(df.head()) #remove hashtag if you want to see this code. 
+
+#making my binary target variable
+df['Target'] = df['Contract_duur'].apply(lambda x: '<=3' if x <= 3 else '>3')
 
 #Treating missing values by data imputation 
 #A lot of conditional missing data, e.g. a parking spot is not going to have an energy label obviously, so we will need to treat every column type seperately
