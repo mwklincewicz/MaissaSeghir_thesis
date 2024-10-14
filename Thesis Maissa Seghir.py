@@ -225,10 +225,12 @@ df['Energielabel_encoded'] = np.where(df['Energielabel_encoded'].isna(),
 df['Energielabel'] = le.inverse_transform(df['Energielabel_encoded'].round().astype(int))
 
 # Check changes
-print(df[['Energielabel', 'Energielabel_encoded']].head())  # Display some rows to verify
+#print(df[['Energielabel', 'Energielabel_encoded']].head())  # remove hashtag if you want to see this code
 
-
-
+#fixing empty columns in Afmelddatum_VABI, if there is no date it means this project did not include the property. So it isnt missing data.
+#ill add a placeholder in the future and a binary flag.
+df['Afmelddatum_VABI flag'] = df['Afmelddatum_VABI'].isnull().astype(int)
+df['Afmelddatum_VABI'].fillna(pd.Timestamp('2100-12-31'), inplace=True)
 
 
 
