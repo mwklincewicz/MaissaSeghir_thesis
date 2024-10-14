@@ -4,6 +4,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 from datetime import datetime
+from sklearn.impute import KNNImputer
+from sklearn.preprocessing import LabelEncoder
 
 #Open the file and check df
 df =pd.read_csv('thesis DSS.csv')
@@ -148,6 +150,11 @@ df['Year of demolition flag'] = df['Year of demolition'].isnull().astype(int)
 #adding a placeholder for year of demolition,  i removed it earlier for analytical purposes but i want it back, however 9999 is out of bounds so i have to keep it within bounds. 
 df['Year of demolition'].fillna(pd.Timestamp('2100-12-31'), inplace=True)
 
+#I only want the year, for analytics purposes its better. E.g. 2012 and 2012 are seen as the same, yet 1-1-2012 and 1-2-2012 arent seen as the same
+#the year is the thing im most interested in so im extracting it
+df['Year of construction'] = pd.to_datetime(df['Year of construction'], errors='coerce').dt.year
+df['Year of demolition'] = pd.to_datetime(df['Year of demolition'], errors='coerce').dt.year
+
 #non residential properties dont have an energylabel, so ill add a placeholder in that column and a binary flag if its empty 
 #some residental properties dont require an energylabel by law (this changed recently but the energylabels havent been added to the data yet)
 #before Energielabel is missing about 20% of data
@@ -198,4 +205,5 @@ cleaned_df =pd.read_csv('cleaned_data.csv')
 
 print(display_missing_values(cleaned_df, max_columns=None, max_rows=None))
 
-
+#energielabel is now missing around 5,8%, the rest of the houses without an energielabel mostly already sold or broken down. So this data is indead missing 
+#and not conditionally missing, so for this I can do something like KNN imputation 
