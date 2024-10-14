@@ -152,7 +152,7 @@ df['Year of demolition'].fillna(pd.Timestamp('2100-12-31'), inplace=True)
 #some residental properties dont require an energylabel by law (this changed recently but the energylabels havent been added to the data yet)
 #before Energielabel is missing about 20% of data
 df['Energielabel'].replace('', np.nan, inplace=True)
-df['Energielabel flag'] = df['Energielabel'].isnull().astype(int)
+
 condition = df['Omschrijving_Vastgoed'].isin(['Woonwagen', 'Woonwagenstandplaats', 
 'Parkeerplaats auto','Parkeerplaats overdekt', 'Garage','Berging','Brede school',
 'Cultuur ruimte','Dagbestedingsruimte','Horeca','Kantoorruimte','Hospice','Maatschappelijk werkruimte wijk-/buurtgericht',
@@ -161,6 +161,10 @@ condition = df['Omschrijving_Vastgoed'].isin(['Woonwagen', 'Woonwagenstandplaats
 
 df.loc[condition & df['Energielabel'].isna(), 'Energielabel'] = 'N.v.t.'
 #now missing % in energielabel is 8,5%
+#Add a binary flag for all "N.v.t." energylabels, these are the properties which arent meant to have a energielabel in the first place
+#Or there is no legal requirement for an energylabel, such as for a school
+
+df['Energielabel flag'] = (df['Energielabel'] == 'N.v.t.').astype(int)
 
 #For the properties named as "kamer" it means this is a room, individual rooms do not have an energylabel, but the property itsself does
 #So for every "Complex" (which is the overarching property in which multiple rooms are being rented) im looking up its energylabel in the Dutch Cadastre 
@@ -175,7 +179,13 @@ df.loc[df['Energielabel'].isna() & (df['complexnummer'] == 7031.0), 'Energielabe
 df.loc[df['Energielabel'].isna() & (df['complexnummer'] == 344.0), 'Energielabel'] = 'B'
 df.loc[df['Energielabel'].isna() & (df['complexnummer'] == 6.0), 'Energielabel'] = 'A'
 df.loc[df['Energielabel'].isna() & (df['complexnummer'] == 1230.0), 'Energielabel'] = 'A+'
+df.loc[df['Energielabel'].isna() & (df['complexnummer'] == 1020.0), 'Energielabel'] = 'A'
+df.loc[df['Energielabel'].isna() & (df['complexnummer'] == 1122.0), 'Energielabel'] = 'A'
+df.loc[df['Energielabel'].isna() & (df['complexnummer'] == 1131.0), 'Energielabel'] = 'B'
+df.loc[df['Energielabel'].isna() & (df['complexnummer'] == 1191.0), 'Energielabel'] = 'A'
+df.loc[df['Energielabel'].isna() & (df['complexnummer'] == 2018.0), 'Energielabel'] = 'A'
 df.loc[df['Energielabel'].isna() & (df['complexnummer'] == 1257.0), 'Energielabel'] = 'N.v.t.'
+
 
 #Complex 2082 has two different energylabels so i have to manually put in the adress
 
