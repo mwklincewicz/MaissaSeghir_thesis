@@ -150,11 +150,6 @@ df['Year of demolition flag'] = df['Year of demolition'].isnull().astype(int)
 #adding a placeholder for year of demolition,  i removed it earlier for analytical purposes but i want it back, however 9999 is out of bounds so i have to keep it within bounds. 
 df['Year of demolition'].fillna(pd.Timestamp('2100-12-31'), inplace=True)
 
-#I only want the year, for analytics purposes its better. E.g. 2012 and 2012 are seen as the same, yet 1-1-2012 and 1-2-2012 arent seen as the same
-#the year is the thing im most interested in so im extracting it
-df['Year of construction'] = pd.to_datetime(df['Year of construction'], errors='coerce').dt.year
-df['Year of demolition'] = pd.to_datetime(df['Year of demolition'], errors='coerce').dt.year
-
 #non residential properties dont have an energylabel, so ill add a placeholder in that column and a binary flag if its empty 
 #some residental properties dont require an energylabel by law (this changed recently but the energylabels havent been added to the data yet)
 #before Energielabel is missing about 20% of data
@@ -199,11 +194,42 @@ df.loc[df['Energielabel'].isna() & (df['complexnummer'] == 1257.0), 'Energielabe
 df.loc[df['Energielabel'].isna() & (df['Straat'] == 'Bergweg 8'), 'Energielabel'] = 'D'
 df.loc[df['Energielabel'].isna() & (df['Straat'] == 'Bergweg 300'), 'Energielabel'] = 'G'
 
+
+#energielabel is now missing around 5,8%, the rest of the houses without an energielabel mostly already sold or broken down. So this data is indead missing 
+#and not conditionally missing, so for this I can do something like KNN imputation 
+#using GeeksforGeeks code for this, source= https://www.geeksforgeeks.org/python-imputation-using-the-knnimputer/
+
+import pandas as pd
+from sklearn.impute import KNNImputer
+from sklearn.preprocessing import LabelEncoder
+
+#labelencoder because KNN works with numerical data, i havent found a good way to do it with categorial data so im just encoding it first
+le = LabelEncoder()
+df['Energielabel_encoded'] = le.fit_transform(df['Energielabel'].astype(str))
+
+#Put back the NaN where they originally are in the column 
+df.loc[df['Energielabel'].isna(), 'Energielabel_encoded'] = np.nan
+
+#I want to use the columns house age and WOZ-value, since there are numerical and usually have high correlation with energie label, old houses and cheaper houses usually have lower energylabels then expensive and new houses
+features = df[['WOZ waarde','Huis_leeftijd']]  
+
+#Impute
+imputer = KNNImputer(n_neighbors=5, weights="uniform")  # choose n=5 cause this is usually the default
+imputed_data = imputer.fit_transform(features)
+
+# Replace the imputed Energielabel values in the original df
+df['Energielabel_encoded'] = imputed_data[:, 0] 
+
+# Decode the imputed numeric values back to their original categorical values, i dont really have to do this one cause the algoritmh doesnt care if its encoded or not
+#But i will do it anyway to make the code more understandable. Trees work well with categories so its okay 
+df['Energielabel'] = le.inverse_transform(df['Energielabel_encoded'].round().astype(int))
+
+# Check changes
+print(df[['Energielabel', 'Energielabel_encoded']].head())  # Display some rows to verify
+
+
 df.to_csv('cleaned_data.csv', index=False)
 
 cleaned_df =pd.read_csv('cleaned_data.csv')
 
 print(display_missing_values(cleaned_df, max_columns=None, max_rows=None))
-
-#energielabel is now missing around 5,8%, the rest of the houses without an energielabel mostly already sold or broken down. So this data is indead missing 
-#and not conditionally missing, so for this I can do something like KNN imputation 
