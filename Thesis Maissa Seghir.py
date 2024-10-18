@@ -341,8 +341,48 @@ dict = {
 df['Woning_type'] = df['Woning_type'].replace(dict)
 
 
-print(df[['Woning_type']])
+#print(df[['Woning_type']])
 
+#Lets impute
+
+# Define the mapping for imputing Omschrijving_Vastgoed based on Woning_Type
+impute_dict = {
+    "Bergruimte": "Berging",
+    "Appartement": "Appartement",
+    "Seniorenwoning": "Seniorenwoning",
+    "Woonzorgwoning": "Verzorgingshuis",
+    "Serviceflatwoning": "Serviceflatwoning",
+    "Verzorgingscentra": "Verpleeghuis",
+    "Begeleid wonen": "Begeleid wonen",
+    "Meergezinshuis": "Meergezinshuis",
+    "Maisonette": "Maisonette",
+    "Kamer": "Kamer",
+    "Logeerkamer": "Kamer",
+    "Chalet": "Tijdelijke woning",
+    "Woonwagen": "Woonwagen",
+    "Standpl. woonwagen": "Woonwagenstandplaats",
+    "Garage": "Garage",
+    "Parkeerplaats": "Parkeerplaats auto",
+    "Overd. parkeerplaats": "Parkeerplaats overdekt",
+    "Bedrijfsruimte": "Bedrijfsruimte",
+    "Kantoor": "Kantoorruimte",
+    "Winkel": "Winkelruimte",
+    "Praktijk": "Praktijkruimte",
+    "Peuterzaal": "Schoolgebouw",
+    "Kinderdagverblijf": "Schoolgebouw",
+    "Ontmoetingscentrum": "Welzijnswerkruimte wijk-/buurtgericht",
+    "Wijkgebouw": "Welzijnswerkruimte wijk-/buurtgericht",
+}
+
+# conditional imputation 
+df['Omschrijving_Vastgoed'] = df.apply(
+    lambda row: impute_dict.get(row['Woning_type'], row['Omschrijving_Vastgoed']) 
+    if pd.isna(row['Omschrijving_Vastgoed']) else row['Omschrijving_Vastgoed'],
+    axis=1
+)
+
+#Omschrijving_Vastgoed went from 17% missing to 5% missing
+#now I can imput Eengezins_Meergezins and VERA_Type based on Omschrijving_Vastgoed
 
 #write to cleaned data
 df.to_csv('cleaned_data.csv', index=False)
