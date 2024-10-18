@@ -232,7 +232,7 @@ df['Energielabel'] = le.inverse_transform(df['Energielabel_encoded'].round().ast
 df['Afmelddatum_VABI flag'] = df['Amfelddatum_VABI'].isnull().astype(int)
 df['Amfelddatum_VABI'].fillna(pd.Timestamp('2100-12-31'), inplace=True)
 
-#Going to do some conditional imputation for Omschrijving_Vastgoed, Eengezins_Meergezins, VERA_Type because missing value is around 17%
+#Going to do some conditional imputation for Omschrijving_Vastgoed, Eengezins_Meergezins, VERA_Type 
 #If the "Contracttype" is "Woonwagen/standplaats" the Omschrijving vastgoed can only be Woonwagen on standplaats. If there are any rooms its woonwagen
 #if no rooms omschrijving vastgoed is woonwagenstandplaats
 # Conditional imputation for 'Omschrijving_Vastgoed' based on 'Contracttype' and room availability
@@ -263,29 +263,33 @@ def impute_eengezins_meergezins_and_vera_type(row):
 df = df.apply(impute_eengezins_meergezins_and_vera_type, axis=1)
 
 
-
 #I got a file from work in which every complex has a "Omschrijving_vastgoed"
 #I will imput "Omschrijving_vastgoed" from this data
 #Dataset has another delimiter so i have to mention it else it wont run
+#Make a column thats unique and the same to i can leftjoin 
+df['VHE'] = 'HO ' + df['Bedrijfscode'].astype(str) + '/' + \
+            df['complexnummer'].astype(str) + '/' + \
+            df['Huurobject'].astype(str)
+
+
 impute_df = pd.read_csv('bezitslijst per 02092024.csv', delimiter=';')
 
-# Im converting complexnummer to string because they are identifiers and one has a decimal and one hasnt
-df['complexnummer'] = df['complexnummer'].astype(str).str.split('.').str[0]
-impute_df['Complexnummer'] = impute_df['Complexnummer'].astype(str).str.split('.').str[0]
+#Change to string to avoid issues
+df['VHE'] = df['VHE'].astype(str).str.split('.').str[0]
+impute_df['VHE nummer'] = impute_df['VHE nummer'].astype(str).str.split('.').str[0]
 
-# Merge the two dataframes on Complexnummer and add VERA
-merged_df = df.merge(impute_df[['Complexnummer', 'VERA typering']], 
-                     left_on='complexnummer', right_on='Complexnummer', how='left')
+#merge on VHE
+merged_df = df.merge(impute_df[['VHE nummer', 'VERA typering']], 
+                     left_on='VHE', right_on='VHE nummer', how='left')
 
-# Impute values from 'VERA typering' where 'Omschrijving_Vastgoed' is currently a missing value
+#impute
 merged_df['Omschrijving_Vastgoed'] = merged_df.apply(
     lambda row: row['VERA typering'] if pd.isna(row['Omschrijving_Vastgoed']) else row['Omschrijving_Vastgoed'], axis=1
 )
 
-# Drop columns that i dont want
-merged_df = merged_df.drop(columns=['Complexnummer', 'VERA typering'])
+#Drop collumns i dont want
+merged_df = merged_df.drop(columns=['VHE nummer', 'VERA typering'])
 
-# Update
 df = merged_df
 
 #write to cleaned data
