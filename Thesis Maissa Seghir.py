@@ -237,7 +237,7 @@ df['Ontvangstdatum_opzegging flag'] = df['Ontvangstdatum_opzegging'].isnull().as
 df['Ontvangstdatum_opzegging'].fillna(pd.Timestamp('2100-12-31'), inplace=True)
 
 #Also doing the same for this feature
-df.loc[condition & df['Reden_opzegging'].isna(), 'Reden_opzegging'] = 'N.v.t.'
+df['Reden_opzegging'] = df['Reden_opzegging'].fillna('N.v.t.')
 df['Reden_opzegging flag'] = (df['Reden_opzegging'] == 'N.v.t.').astype(int)
 
 #Going to do some conditional imputation for Omschrijving_Vastgoed, Eengezins_Meergezins, VERA_Type 
