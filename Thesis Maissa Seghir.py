@@ -271,6 +271,7 @@ df['VHE'] = 'HO ' + df['Bedrijfscode'].astype(str) + '/' + \
             df['complexnummer'].astype(str) + '/' + \
             df['Huurobject'].astype(str)
 
+print(df['VHE'])
 
 impute_df = pd.read_csv('bezitslijst per 02092024.csv', delimiter=';')
 
