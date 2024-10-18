@@ -247,9 +247,50 @@ def impute_omschrijving_vastgoed(row):
 # Apply the function 
 df['Omschrijving_Vastgoed'] = df.apply(impute_omschrijving_vastgoed, axis=1)
 
+#doing the same for Vera type and eengezins_meergezins
+def impute_eengezins_meergezins_and_vera_type(row):
+    # If 'Omschrijving_Vastgoed' is 'Woonwagenstandplaats'
+    if row['Omschrijving_Vastgoed'] == 'Woonwagenstandplaats':
+        row['Eengezins_Meergezins'] = 'Niet benoemd'
+        row['VERA_Type'] = 'Overig'
+    # If 'Omschrijving_Vastgoed' is 'Woonwagen'
+    elif row['Omschrijving_Vastgoed'] == 'Woonwagen':
+        row['Eengezins_Meergezins'] = 'Overig'
+        row['VERA_Type'] = 'Woonruimte'
+    return row
+
+# Apply the function 
+df = df.apply(impute_eengezins_meergezins_and_vera_type, axis=1)
+
+
+
+#I got a file from work in which every complex has a "Omschrijving_vastgoed"
+#I will imput "Omschrijving_vastgoed" from this data
+impute_df =pd.read_csv('bezitslijst per 02092024.csv')
+
+# Im converting complexnummer to string because they are identifiers and one has a decimal and one hasnt
+df['complexnummer'] = df['complexnummer'].astype(str).str.split('.').str[0]
+impute_df['Complexnummer'] = impute_df['Complexnummer'].astype(str).str.split('.').str[0]
+
+# Merge the two dataframes on Complexnummer and add VERA
+merged_df = df.merge(impute_df[['Complexnummer', 'VERA_typering']], 
+                     left_on='complexnummer', right_on='Complexnummer', how='left')
+
+# Impute values from 'VERA_typering' where 'Omschrijving_Vastgoed' is currently a missing value
+merged_df['Omschrijving_Vastgoed'] = merged_df.apply(
+    lambda row: row['VERA_typering'] if pd.isna(row['Omschrijving_Vastgoed']) else row['Omschrijving_Vastgoed'], axis=1
+)
+
+# Drop columns that i dont want
+merged_df = merged_df.drop(columns=['Complexnummer', 'VERA_typering'])
+
+# Update
+df = merged_df
+
 #write to cleaned data
 df.to_csv('cleaned_data.csv', index=False)
 cleaned_df =pd.read_csv('cleaned_data.csv')
 
 #print current missing values
 print(display_missing_values(cleaned_df, max_columns=None, max_rows=None))
+
