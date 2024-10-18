@@ -209,7 +209,7 @@ df['Energielabel_encoded'] = le.fit_transform(df['Energielabel'].astype(str))
 df.loc[df['Energielabel'].isna(), 'Energielabel_encoded'] = np.nan
 
 #I want to use the columns house age and WOZ-value, since there are numerical and usually have high correlation with energie label, old houses and cheaper houses usually have lower energylabels then expensive and new houses
-features = df[['WOZ waarde','Huis_leeftijd','Energielabel_encoded']]  
+features = df[['WOZ waarde','Huis_leeftijd','Verhuurbaar vloeroppervlakte','Verwarmde vertrekken','Bruto vloeroppervlakte','Energielabel_encoded']]  
 
 #Impute
 imputer = KNNImputer(n_neighbors=5, weights="uniform")  # choose n=5 cause this is usually the default
@@ -217,7 +217,7 @@ imputed_data = imputer.fit_transform(features)
 
 # Replace the imputed Energielabel values in the original df
 df['Energielabel_encoded'] = np.where(df['Energielabel_encoded'].isna(), 
-                                      imputed_data[:, 2], 
+                                      imputed_data[:, 5], 
                                       df['Energielabel_encoded'])
 
 # Decode the imputed numeric values back to their original categorical values, i dont really have to do this one cause the algoritmh doesnt care if its encoded or not
@@ -231,6 +231,14 @@ df['Energielabel'] = le.inverse_transform(df['Energielabel_encoded'].round().ast
 #ill add a placeholder in the future and a binary flag.
 df['Afmelddatum_VABI flag'] = df['Amfelddatum_VABI'].isnull().astype(int)
 df['Amfelddatum_VABI'].fillna(pd.Timestamp('2100-12-31'), inplace=True)
+
+#Doing the same for this feature
+df['Ontvangstdatum_opzegging flag'] = df['Ontvangstdatum_opzegging'].isnull().astype(int)
+df['Ontvangstdatum_opzegging'].fillna(pd.Timestamp('2100-12-31'), inplace=True)
+
+#Also doing the same for this feature
+df.loc[condition & df['Reden_opzegging'].isna(), 'Reden_opzegging'] = 'N.v.t.'
+df['Reden_opzegging flag'] = (df['Reden_opzegging'] == 'N.v.t.').astype(int)
 
 #Going to do some conditional imputation for Omschrijving_Vastgoed, Eengezins_Meergezins, VERA_Type 
 #If the "Contracttype" is "Woonwagen/standplaats" the Omschrijving vastgoed can only be Woonwagen on standplaats. If there are any rooms its woonwagen
@@ -435,6 +443,53 @@ df['Eengezins_Meergezins'] = df.apply(
 )
 
 #now eengezins_meergezins is around 0.42%
+
+#Now i will look at VERA_type
+#Using a dictionary again
+impute_dict_VERA = {
+    "Bergruimte": "Overig",
+    "Appartement": "Woonruimte",
+    "Seniorenwoning": "Woonruimte",
+    "Woonzorgwoning": "Woonruimte",
+    "Serviceflatwoning": "Woonruimte",
+    "Verzorgingscentra": "Intramuraal zorgvastgoed",
+    "Begeleid wonen": "Intramuraal zorgvastgoed",
+    "Meergezinshuis": "Woonruimte",
+    "Maisonette": "Woonruimte",
+    "Kamer": "Woonruimte",
+    "Logeerkamer": "Woonruimte",
+    "Chalet": "Woonruimte",
+    "Woonwagen": "Woonruimte",
+    "Standpl. woonwagen": "Overig",
+    "Garage": "Overig",
+    "Parkeerplaats": "Overig",
+    "Overd. parkeerplaats": "overig",
+    "Bedrijfsruimte": "Bedrijfsruimte",
+    "Kantoor": "Bedrijfsruimte",
+    "Winkel": "Bedrijfsruimte",
+    "Praktijk": "Bedrijfsruimte",
+    "Peuterzaal": "Maatschappelijk vastgoed",
+    "Kinderdagverblijf": "Maatschappelijk vastgoed",
+    "Ontmoetingscentrum": "Maatschappelijk vastgoed",
+    "Wijkgebouw": "Maatschappelijk vastgoed",
+}
+
+#Conditional imputation
+df['VERA_Type'] = df.apply(
+    lambda row: impute_dict_VERA.get(row['Woning_type'], row['VERA_Type']) 
+    if pd.isna(row['VERA_Type']) else row['VERA_Type'],
+    axis=1
+)
+
+#VERA went from 17% to 5%
+
+#Doing some more conditional work based on Eengezins_Meergezins
+df['VERA_Type'] = df.apply(
+    lambda row: 'Woonruimte' if row['Eengezins_Meergezins'] in ['Eengezinswoning', 'Meergezinswoning'] and pd.isna(row['VERA_Type'])
+    else row['VERA_Type'], axis=1
+)
+
+#Now its from 5% to 0.42%
 
 #write to cleaned data
 df.to_csv('cleaned_data.csv', index=False)
