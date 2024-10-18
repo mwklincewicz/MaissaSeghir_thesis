@@ -172,8 +172,8 @@ df['Energielabel flag'] = (df['Energielabel'] == 'N.v.t.').astype(int)
 
 #For the properties named as "kamer" it means this is a room, individual rooms do not have an energylabel, but the property itsself does
 #So for every "Complex" (which is the overarching property in which multiple rooms are being rented) im looking up its energylabel in the Dutch Cadastre 
-#which is basically a land registry 
-#im doing this for all complexes with multiple rooms
+#which is a land registry 
+#im doing this for all large complexes with multiple rooms
 df['Energielabel'].replace('', np.nan, inplace=True)
 df.loc[df['Energielabel'].isna() & (df['complexnummer'] == 1193.0), 'Energielabel'] = 'A'
 df.loc[df['Energielabel'].isna() & (df['complexnummer'] == 683.0), 'Energielabel'] = 'A'
@@ -382,12 +382,64 @@ df['Omschrijving_Vastgoed'] = df.apply(
 )
 
 #Omschrijving_Vastgoed went from 17% missing to 5% missing
-#now I can imput Eengezins_Meergezins and VERA_Type based on Omschrijving_Vastgoed
+
+#now I can imput Eengezins_Meergezins and VERA_Type based on Omschrijving_Vastgoed and Woning_type
+#if woning_type is eengezins impute that into eengezins_meergezins, doing the same for meergezins proprety (So if one family is living there or more)
+#e.g. a flat is meergezins, because multiple groups of people reside there, a normal house is an eengezinswoning, because one family resides
+def impute_eengezins_meergezins(row):
+    if pd.isna(row['Eengezins_Meergezins']):
+        if row['Woning_type'] == "Eengezinswoning":
+            return "Eengezinswoning"
+        elif row['Woning_type'] == "Meergezinswoning":
+            return "Meergezinswoning"
+    return row['Eengezins_Meergezins']
+
+#Apply conditional imputation
+df['Eengezins_Meergezins'] = df.apply(impute_eengezins_meergezins, axis=1)
+
+#Eengezins_Meergezins went from 17% to 12%
+#Using Woningtype for conditionally imputing eengezins_meergezins further
+impute_dict_eengezins_meergezins = {
+    "Bergruimte": "Overig",
+    "Appartement": "Meergezinswoning",
+    "Seniorenwoning": "Meergezinswoning",
+    "Woonzorgwoning": "Meergezinswoning",
+    "Serviceflatwoning": "Meergezinswoning",
+    "Verzorgingscentra": "Meergezinswoning",
+    "Begeleid wonen": "Meergezinswoning",
+    "Meergezinshuis": "Meergezinswoning",
+    "Maisonette": "Meergezinswoning",
+    "Kamer": "Meergezinswoning",
+    "Logeerkamer": "Meergezinswoningr",
+    "Chalet": "Eengezinswoning",
+    "Woonwagen": "Overig",
+    "Standpl. woonwagen": "Overig",
+    "Garage": "Overig",
+    "Parkeerplaats": "Overig",
+    "Overd. parkeerplaats": "Overig",
+    "Bedrijfsruimte": "Overig",
+    "Kantoor": "Overig",
+    "Winkel": "Overig",
+    "Praktijk": "Overig",
+    "Peuterzaal": "Overig",
+    "Kinderdagverblijf": "Overig",
+    "Ontmoetingscentrum": "Overig",
+    "Wijkgebouw": "Overig",
+}
+
+#Conditional imputation
+df['Eengezins_Meergezins'] = df.apply(
+    lambda row: impute_dict_eengezins_meergezins.get(row['Woning_type'], row['Eengezins_Meergezins']) 
+    if pd.isna(row['Eengezins_Meergezins']) else row['Eengezins_Meergezins'],
+    axis=1
+)
+
+#now eengezins_meergezins is around 0.42%
 
 #write to cleaned data
 df.to_csv('cleaned_data.csv', index=False)
 cleaned_df =pd.read_csv('cleaned_data.csv')
 
-#print current missing values
+#print to check the current missing values after treatment
 print(display_missing_values(cleaned_df, max_columns=None, max_rows=None))
 
