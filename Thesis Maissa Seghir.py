@@ -267,6 +267,13 @@ df = df.apply(impute_eengezins_meergezins_and_vera_type, axis=1)
 #I will imput "Omschrijving_vastgoed" from this data
 #Dataset has another delimiter so i have to mention it else it wont run
 #Make a column thats unique and the same to i can leftjoin 
+#This code doesnt do anything to decrease missing values so im putting in """ """so it doesnt run everytime because it takes a long time to run
+#If you want to run it remove the """ """
+"""
+df['Bedrijfscode'] = pd.to_numeric(df['Bedrijfscode'], errors='coerce').astype('Int64') 
+df['complexnummer'] = pd.to_numeric(df['complexnummer'], errors='coerce').astype('Int64')
+df['Huurobject'] = pd.to_numeric(df['Huurobject'], errors='coerce').astype('Int64')
+
 df['VHE'] = 'HO ' + df['Bedrijfscode'].astype(str) + '/' + \
             df['complexnummer'].astype(str) + '/' + \
             df['Huurobject'].astype(str)
@@ -276,8 +283,8 @@ print(df['VHE'])
 impute_df = pd.read_csv('bezitslijst per 02092024.csv', delimiter=';')
 
 #Change to string to avoid issues
-df['VHE'] = df['VHE'].astype(str).str.split('.').str[0]
-impute_df['VHE nummer'] = impute_df['VHE nummer'].astype(str).str.split('.').str[0]
+df['VHE'] = df['VHE'].astype(str)
+impute_df['VHE nummer'] = impute_df['VHE nummer'].astype(str)
 
 #merge on VHE
 merged_df = df.merge(impute_df[['VHE nummer', 'VERA typering']], 
@@ -292,6 +299,50 @@ merged_df['Omschrijving_Vastgoed'] = merged_df.apply(
 merged_df = merged_df.drop(columns=['VHE nummer', 'VERA typering'])
 
 df = merged_df
+
+"""
+
+#This didnt seem to work, the missing values seem to be from houses that we currently no longer have. 
+#I do have encoded Woning_type, so i will conditionally impute it based on that information 
+#lets make a dictionary for encoding
+dict = {
+    1000: "Eengezinswoning",
+    1010: "Appartement",
+    1020: "Seniorenwoning",
+    1030: "Woonzorgwoning",
+    1040: "Serviceflatwoning",
+    1050: "Verzorgingscentra",
+    1060: "Begeleid wonen",
+    1070: "Meergezinshuis",
+    1080: "Maisonette",
+    1090: "Kamer",
+    1100: "Logeerkamer",
+    1110: "Chalet",
+    1120: "Woonwagen",
+    1130: "Standpl. woonwagen",
+    1140: "Garage",
+    1150: "Parkeerplaats",
+    1160: "Overd. parkeerplaats",
+    1170: "Bergruimte",
+    1180: "Bedrijfsruimte",
+    1190: "Kantoor",
+    1200: "Winkel",
+    1210: "Praktijk",
+    1220: "Peuterzaal",
+    1230: "Kinderdagverblijf",
+    1240: "Ontmoetingscentrum",
+    1250: "Wijkgebouw",
+    1260: "Beheer derden woning",
+    1261: "Onderhoud particulieren",
+    1262: "Onderhoud personeel"
+}
+
+
+df['Woning_type'] = df['Woning_type'].replace(dict)
+
+
+print(df[['Woning_type']])
+
 
 #write to cleaned data
 df.to_csv('cleaned_data.csv', index=False)
