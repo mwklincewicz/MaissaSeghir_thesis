@@ -488,8 +488,15 @@ df['VERA_Type'] = df.apply(
     lambda row: 'Woonruimte' if row['Eengezins_Meergezins'] in ['Eengezinswoning', 'Meergezinswoning'] and pd.isna(row['VERA_Type'])
     else row['VERA_Type'], axis=1
 )
+df['VERA_type'] = df.apply(
+    lambda row: 'Woonruimte' if pd.isna(row['VERA_type']) and row['1e Slaapkamer'] > 0.0 else row['VERA_type'], axis=1
+)
 
 #Now its from 5% to 0.42%
+#Not adding binary flags for VERA_type, Eengezins_Meergezins and Woning_omschrijving because in principle, there is no situation in which these SHOULD
+#Also didnt add placeholders because it doesnt make sense
+
+
 
 #write to cleaned data
 df.to_csv('cleaned_data.csv', index=False)
