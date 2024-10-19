@@ -502,29 +502,29 @@ df['VERA_Type'] = df.apply(
 #Doing KNN-imputation for the other 5% of missing Omschrijving_Vastgoed
 #Again using source: https://www.geeksforgeeks.org/python-imputation-using-the-knnimputer/
 
-#encode from categorical to numerical
+# Label encoder
 le = LabelEncoder()
 df['Omschrijving_Vastgoed_encoded'] = le.fit_transform(df['Omschrijving_Vastgoed'].astype(str))
 
-# For the selection of features i choose the features regarding the sizes off all the rooms in the house and the complexnumber
+# columns for prediction
 features = df[['Omschrijving_Vastgoed_encoded', '1e Slaapkamer', '2e Slaapkamer', '3e Slaapkamer', 
                'Aparte douche/lavet+douche 1', 'Badkamer/doucheruimte 1', 'Toilet (Sanitair 1)', 
                'Totaal kamers', 'Totaal overige ruimtes', 'Verhuurbaar vloeroppervlakte', 'Woonkamer', 
                'Zolder', 'complexnummer']]
 
-# imputation with k=5 
-imputer = KNNImputer(n_neighbors=5, weights="uniform") 
+# KNN with 5 neighbors
+imputer = KNNImputer(n_neighbors=5, weights="uniform")
 imputed_data = imputer.fit_transform(features)
 
-# replace values
-df['Omschrijving_Vastgoed_encoded'] = np.where(df['Omschrijving_Vastgoed'].isna(), 
+#Replace values
+df['Omschrijving_Vastgoed_encoded'] = np.where(df['Omschrijving_Vastgoed_encoded'].isna(), 
                                                imputed_data[:, 0],  
                                                df['Omschrijving_Vastgoed_encoded'])
 
-# Decode back to original values so i can understand the context when analyzing data further
+#convert back to categorical data
 df['Omschrijving_Vastgoed'] = le.inverse_transform(df['Omschrijving_Vastgoed_encoded'].astype(int))
 
-# Drop columns
+#drop column 
 df.drop(columns=['Omschrijving_Vastgoed_encoded'], inplace=True)
 
 #write to cleaned data
