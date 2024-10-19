@@ -7,6 +7,8 @@ from datetime import datetime
 from sklearn.impute import KNNImputer
 from sklearn.preprocessing import LabelEncoder
 
+
+
 #Open the file and check df
 df =pd.read_csv('thesis DSS.csv')
 print(df.head())
@@ -117,7 +119,9 @@ df[real_prices] = df[real_prices].replace(0, np.nan)
 df.to_csv('cleaned_data.csv', index=False)
 
 #Treating missing values by data imputation 
-
+#Dropping all rows that have missing values in column "VIBDRO", this just means the contact doesnt have a property connected to it
+#Idk why this happens but its only 0,2% and if its missing in vibro many other columns are also missing do these rows are kind of useless
+df = df.dropna(subset=['VIBDRO_Huurobject_id'])
 
 #Also, handling values that are empty but should be 0 (for example, an empty cell in the 3rd bedroom does not mean its unknown how big the bedroom is, it means there is no bedroom so it should be 0)
 rooms = ["Zolder", "Verwarmde overige ruimten", "2e Slaapkamer", 
@@ -488,15 +492,40 @@ df['VERA_Type'] = df.apply(
     lambda row: 'Woonruimte' if row['Eengezins_Meergezins'] in ['Eengezinswoning', 'Meergezinswoning'] and pd.isna(row['VERA_Type'])
     else row['VERA_Type'], axis=1
 )
-df['VERA_type'] = df.apply(
-    lambda row: 'Woonruimte' if pd.isna(row['VERA_type']) and row['1e Slaapkamer'] > 0.0 else row['VERA_type'], axis=1
+df['VERA_Type'] = df.apply(
+    lambda row: 'Woonruimte' if pd.isna(row['VERA_Type']) and row['1e Slaapkamer'] > 0.0 else row['VERA_Type'], axis=1
 )
 
-#Now its from 5% to 0.42%
+#Now its from 5% to 0.22%
 #Not adding binary flags for VERA_type, Eengezins_Meergezins and Woning_omschrijving because in principle, there is no situation in which these SHOULD
 #Also didnt add placeholders because it doesnt make sense
+#Doing KNN-imputation for the other 5% of missing Omschrijving_Vastgoed
+#Again using source: https://www.geeksforgeeks.org/python-imputation-using-the-knnimputer/
 
+#encode from categorical to numerical
+le = LabelEncoder()
+df['Omschrijving_Vastgoed_encoded'] = le.fit_transform(df['Omschrijving_Vastgoed'].astype(str))
 
+# For the selection of features i choose the features regarding the sizes off all the rooms in the house and the complexnumber
+features = df[['Omschrijving_Vastgoed_encoded', '1e Slaapkamer', '2e Slaapkamer', '3e Slaapkamer', 
+               'Aparte douche/lavet+douche 1', 'Badkamer/doucheruimte 1', 'Toilet (Sanitair 1)', 
+               'Totaal kamers', 'Totaal overige ruimtes', 'Verhuurbaar vloeroppervlakte', 'Woonkamer', 
+               'Zolder', 'complexnummer']]
+
+# imputation with k=5 
+imputer = KNNImputer(n_neighbors=5, weights="uniform") 
+imputed_data = imputer.fit_transform(features)
+
+# replace values
+df['Omschrijving_Vastgoed_encoded'] = np.where(df['Omschrijving_Vastgoed'].isna(), 
+                                               imputed_data[:, 0],  
+                                               df['Omschrijving_Vastgoed_encoded'])
+
+# Decode back to original values so i can understand the context when analyzing data further
+df['Omschrijving_Vastgoed'] = le.inverse_transform(df['Omschrijving_Vastgoed_encoded'].astype(int))
+
+# Drop columns
+df.drop(columns=['Omschrijving_Vastgoed_encoded'], inplace=True)
 
 #write to cleaned data
 df.to_csv('cleaned_data.csv', index=False)
