@@ -547,6 +547,18 @@ df['Markthuur'] = df['Markthuur'].replace([10.0], np.nan)
 df['Maximaal_redelijke_huur'] = df['Maximaal_redelijke_huur'].replace([0.0,0.01], np.nan)
 df['Streefhuur'] = df['Streefhuur'].replace([0.01,0.02,1.0,10.0,10.4], np.nan)
 
+
+#Streefhuur is around 70% of max_redelijke_huur, so max-redelijke huur is around 142% of streefhuur, if streefhuur is not missing and max redelijke huur is, im imputing it based on this information
+#https://corporatiestrateeg.nl/corporatiebeleid/huurbeleid/wat-is-de-streefhuur/
+
+df['Maximaal_redelijke_huur'] = np.where(
+    df['Maximaal_redelijke_huur'].isna() & df['Streefhuur'].notna(),
+    df['Streefhuur'] * 1.43, 
+    df['Maximaal_redelijke_huur']  
+)
+
+df['Maximaal_redelijke_huur'] = df['Maximaal_redelijke_huur'].round(2)
+
 #Imputing max_redelijke_huur based on calculations provided by the government, for every point that the house has, you can sharge approximately 5.55 in rent
 #Source=https://wetten.overheid.nl/BWBR0015386/2021-07-01#BijlageI
 
