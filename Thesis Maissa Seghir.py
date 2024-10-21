@@ -244,6 +244,11 @@ df['Ontvangstdatum_opzegging'].fillna(pd.Timestamp('2100-12-31'), inplace=True)
 df['Reden_opzegging'] = df['Reden_opzegging'].fillna('N.v.t.')
 df['Reden_opzegging flag'] = (df['Reden_opzegging'] == 'N.v.t.').astype(int)
 
+#The same for this  feature 
+df['Contract_duur flag'] = df['Contract_duur'].isnull().astype(int)
+df['Contract_duur'].fillna(-1, inplace=True)
+
+
 #Going to do some conditional imputation for Omschrijving_Vastgoed, Eengezins_Meergezins, VERA_Type 
 #If the "Contracttype" is "Woonwagen/standplaats" the Omschrijving vastgoed can only be Woonwagen on standplaats. If there are any rooms its woonwagen
 #if no rooms omschrijving vastgoed is woonwagenstandplaats
@@ -501,31 +506,61 @@ df['VERA_Type'] = df.apply(
 #Also didnt add placeholders because it doesnt make sense
 #Doing KNN-imputation for the other 5% of missing Omschrijving_Vastgoed
 #Again using source: https://www.geeksforgeeks.org/python-imputation-using-the-knnimputer/
-
 # Label encoder
+
+from sklearn.impute import KNNImputer
+from sklearn.preprocessing import LabelEncoder
+import numpy as np
+
+# Step 1: Label encode 'Omschrijving_Vastgoed'
 le = LabelEncoder()
 df['Omschrijving_Vastgoed_encoded'] = le.fit_transform(df['Omschrijving_Vastgoed'].astype(str))
 
-# columns for prediction
+df.loc[df['Omschrijving_Vastgoed'].isna(), 'Omschrijving_Vastgoed_encoded'] = np.nan
+
+#Features i want to use such as room sizes etc
 features = df[['Omschrijving_Vastgoed_encoded', '1e Slaapkamer', '2e Slaapkamer', '3e Slaapkamer', 
                'Aparte douche/lavet+douche 1', 'Badkamer/doucheruimte 1', 'Toilet (Sanitair 1)', 
                'Totaal kamers', 'Totaal overige ruimtes', 'Verhuurbaar vloeroppervlakte', 'Woonkamer', 
                'Zolder', 'complexnummer']]
 
-# KNN with 5 neighbors
-imputer = KNNImputer(n_neighbors=5, weights="uniform")
+#Perform KNN imputation with k=5
+imputer = KNNImputer(n_neighbors=5, weights="uniform") 
 imputed_data = imputer.fit_transform(features)
 
-#Replace values
-df['Omschrijving_Vastgoed_encoded'] = np.where(df['Omschrijving_Vastgoed_encoded'].isna(), 
+#Impute back
+df['Omschrijving_Vastgoed_encoded'] = np.where(df['Omschrijving_Vastgoed'].isna(), 
                                                imputed_data[:, 0],  
                                                df['Omschrijving_Vastgoed_encoded'])
 
-#convert back to categorical data
+#Decode
 df['Omschrijving_Vastgoed'] = le.inverse_transform(df['Omschrijving_Vastgoed_encoded'].astype(int))
 
-#drop column 
+# Drop column
 df.drop(columns=['Omschrijving_Vastgoed_encoded'], inplace=True)
+
+#Categorical data is imputed
+#Now to numeric data
+#first lets clean the numeric values and remove all illegal values that i found in columns such as 0.0 for WOZ-values to see the true missing %
+df['WOZ waarde'] = df['WOZ waarde'].replace([0.0], np.nan)
+df['Markthuur'] = df['Markthuur'].replace([10.0], np.nan)
+df['Maximaal_redelijke_huur'] = df['Maximaal_redelijke_huur'].replace([0.0,0.01], np.nan)
+df['Streefhuur'] = df['Streefhuur'].replace([0.01,0.02,1.0,10.0,10.4], np.nan)
+
+#Imputing max_redelijke_huur based on calculations provided by the government, for every point that the house has, you can sharge approximately 5.55 in rent
+#Source=https://wetten.overheid.nl/BWBR0015386/2021-07-01#BijlageI
+
+def impute_max_rent(df):
+    df['Maximaal_redelijke_huur'] = df.apply(
+        lambda row: row['Totale punten (onafgerond)'] * 5.55 
+        if pd.isna(row['Maximaal_redelijke_huur']) else row['Maximaal_redelijke_huur'], 
+        axis=1
+    )
+
+impute_max_rent(df)
+
+#Missing % went from around 30/40% to 1.15%
+
 
 #write to cleaned data
 df.to_csv('cleaned_data.csv', index=False)
