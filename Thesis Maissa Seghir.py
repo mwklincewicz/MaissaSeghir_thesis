@@ -664,13 +664,14 @@ region_dict = {
 }
 
 
-# Normalize the 'Gemeente' values and impute
+# Normalize the 'Gemeente' values, keeping the text lower case and impute data based on the dictionary that i made based on COROP regions
 df['regio'] = df['Gemeente'].str.lower().str.strip().apply(lambda x: region_dict.get(x, 'Unknown Region'))
 
 
-#Impute average WOZ-waarde per suqare meter based on averages per COROP gebied (Dictionary)
+#Impute average WOZ-waarde per suqare meter based on averages per COROP gebied (Dictionary), however, i only want this done for properties that are houses, not parking spots or something 
 #At first missing % is 19%
 
+# Mapping 
 impute_values = {
     'Noord-Limburg': 2164,
     'Midden-Limburg': 2121,
@@ -679,9 +680,15 @@ impute_values = {
     'Arnhem/Nijmegen': 2893
 }
 
-# Impute missing values in 'WOZ waarde per m2'
-df['WOZ waarde per m2'] = df['WOZ waarde per m2'].fillna(df['regio'].map(impute_values))
+# Condition, i only want to impute houses, not garages or storage for example
+condition = df['Eengezins_Meergezins'].isin(['Eengezinswoning', 'Meergezinswoning'])
 
+# Impute missing values in 'WOZ waarde per m2' based on the condition that property is a house 
+df['WOZ waarde per m2'] = np.where(
+    df['WOZ waarde per m2'].isnull() & condition,
+    df['regio'].map(impute_values),
+    df['WOZ waarde per m2']
+)
 
 #write to cleaned data
 df.to_csv('cleaned_data.csv', index=False)
