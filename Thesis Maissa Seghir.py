@@ -508,9 +508,7 @@ df['VERA_Type'] = df.apply(
 #Again using source: https://www.geeksforgeeks.org/python-imputation-using-the-knnimputer/
 # Label encoder
 
-from sklearn.impute import KNNImputer
-from sklearn.preprocessing import LabelEncoder
-import numpy as np
+
 
 # Step 1: Label encode 'Omschrijving_Vastgoed'
 le = LabelEncoder()
@@ -550,17 +548,18 @@ df['Streefhuur'] = df['Streefhuur'].replace([0.01,0.02,1.0,10.0,10.4], np.nan)
 
 #Imputing max_redelijke_huur based on calculations provided by the government, for every point that the house has, you can sharge approximately 5.55 in rent
 #Source=https://wetten.overheid.nl/BWBR0015386/2021-07-01#BijlageI
-
+#only imputing if totale punten is not empty or zero 
 def impute_max_rent(df):
     df['Maximaal_redelijke_huur'] = df.apply(
         lambda row: row['Totale punten (onafgerond)'] * 5.55 
-        if pd.isna(row['Maximaal_redelijke_huur']) else row['Maximaal_redelijke_huur'], 
+        if pd.isna(row['Maximaal_redelijke_huur']) and row['Totale punten (onafgerond)'] not in [None, 0.0] 
+        else row['Maximaal_redelijke_huur'], 
         axis=1
     )
 
 impute_max_rent(df)
 
-#Streefhuur is around 70% of max_redelijke_huur, so max-redelijke huur is around 142% of streefhuur, if streefhuur is not missing and max redelijke huur is, im imputing it based on this information
+#Streefhuur is around 70% of max_redelijke_huur, so max-redelijke huur is around 143% of streefhuur, if streefhuur is not missing and max redelijke huur is, im imputing it based on this information
 #https://corporatiestrateeg.nl/corporatiebeleid/huurbeleid/wat-is-de-streefhuur/
 
 df['Maximaal_redelijke_huur'] = np.where(
@@ -572,9 +571,52 @@ df['Maximaal_redelijke_huur'] = np.where(
 df['Maximaal_redelijke_huur'] = df['Maximaal_redelijke_huur'].round(2)
 
 
+#Missing % went from around 30/40% to 2.4%
 
-#Missing % went from around 30/40% to 1.15%
-#Now doing WOZ-values 
+#Now imputing streefhuur based on Maximaal_redelijke_Huur, Streefhuur is around 70% of max_redelijke_huur is max_redelijke_huur is not missing and streefhuur is, imputing streefhuur with max redelijke huur
+#https://corporatiestrateeg.nl/corporatiebeleid/huurbeleid/wat-is-de-streefhuur/
+
+
+df['Streefhuur'] = np.where(
+    df['Streefhuur'].isna() & df['Maximaal_redelijke_huur'].notna(),
+    df['Maximaal_redelijke_huur'] * 0.7, 
+    df['Streefhuur']  
+)
+
+df['Streefhuur'] = df['Streefhuur'].round(2)
+
+#missing went from 36% to 2,9%
+
+#Now doing WOZ-values per m2
+#First change all types to numeric
+df['WOZ waarde'] = pd.to_numeric(df['WOZ waarde'], errors='coerce')
+df['Verhuurbaar vloeroppervlakte'] = pd.to_numeric(df['Verhuurbaar vloeroppervlakte'], errors='coerce')
+df['WOZ waarde per m2'] = pd.to_numeric(df['WOZ waarde per m2'], errors='coerce')
+df['WOZ waarde (WWS)'] = pd.to_numeric(df['WOZ waarde (WWS)'], errors='coerce')
+
+#If woz exists and woz per m2 doesnt, devide woz with the m2 in the huis 
+
+df.loc[
+    (df['WOZ waarde'].notnull()) & (df['Verhuurbaar vloeroppervlakte'] > 0) & (df['WOZ waarde per m2'].isnull()),
+    'WOZ waarde per m2'
+] = df['WOZ waarde'] / df['Verhuurbaar vloeroppervlakte']
+
+#force it to two decimals
+df['WOZ waarde per m2'] = df['WOZ waarde per m2'].apply(lambda x: f"{x:.2f}" if pd.notnull(x) else None)
+
+#Went from 19% to 10%
+
+#WOZ per m2(WWS) and WOZ(WWS) imputation, WOZ WWS has the least missing values so i will first impute WOZ per m2 (WWS) based on WOZ WWS and Verhuurbaar vloeroppervlakte (the m2) and devide the total with the m2
+df['WOZ waarde per m2 (WWS)'] = np.where(
+    df['WOZ waarde per m2 (WWS)'].isnull() & df['WOZ waarde (WWS)'].notnull() & (df['Verhuurbaar vloeroppervlakte'] > 0),
+    df['WOZ waarde (WWS)'] / df['Verhuurbaar vloeroppervlakte'],
+    df['WOZ waarde per m2 (WWS)'] 
+)
+#force it to two decimals
+df['WOZ waarde per m2 (WWS)'] = df['WOZ waarde per m2 (WWS)'].apply(lambda x: f"{x:.2f}" if pd.notnull(x) else None)
+
+
+#Went from around 19% to 7,5%, which is good
 
 #Check gemeenten we have to map into regions: 
 
@@ -587,7 +629,7 @@ df['Maximaal_redelijke_huur'] = df['Maximaal_redelijke_huur'].round(2)
 
 #Now i will treat missing values for WOZ-waarde 
 # Define the region for each municipality we have houses in
-
+#Based on COROP, source= https://www.cbs.nl/nl-nl/onze-diensten/methoden/begrippen/corop-gebied
 region_dict = {
     # Noord-Limburg
     'molenhoek': 'Noord-Limburg', 'mook': 'Noord-Limburg', 'middelaar': 'Noord-Limburg', 'plasmolen': 'Noord-Limburg',
@@ -663,29 +705,11 @@ region_dict = {
     'wijchen': 'Arnhem/Nijmegen'
 }
 
-
-# Normalize the 'Gemeente' values, keeping the text lower case and impute data based on the dictionary that i made based on COROP regions
+# Normalize the 'Gemeente' values, keeping the text lower case and impute data based on the dictionary that i made based on COROP-regions
 df['regio'] = df['Gemeente'].str.lower().str.strip().apply(lambda x: region_dict.get(x, 'Unknown Region'))
 
 
-#WOZ per m2(WWS) and WOZ(WWS) imputation, WOZ WWS has the least missing values so i will first impute WOZ per m2 based on WOZ WWS and Verhuurbaar vloeroppervlakte (the m2) and devide the total with the m2
-
-df['WOZ waarde per m2 (WWS)'] = np.where(
-    df['WOZ waarde (WWS)'].notnull() & (df['Verhuurbaar vloeroppervlakte'] > 0),
-    df['WOZ waarde (WWS)'] / df['Bruto vloeroppervlakte'],
-    None  # Set to None if the condition is not met
-)
-
-#Went from around 19% to 7,5%, which is good
-
-#LATER NAAR KIJKEN
-#Impute average WOZ-waarde per suqare meter based on averages per COROP gebied (Dictionary), however, i only want this done for properties that are houses, not parking spots or something 
-#At first missing % is 19%
-#First, if WOZ exists, and Bruto vloeroppervlakte is not 0, we take the WOZ waarde and deivde it by the Bruto vloeroppervlakte   
-
-
-
-
+#Impute average WOZ-waarde per suqare meter based on averages per COROP gebied (Dictionary)
 
 # Mapping 
 impute_values = {
@@ -696,15 +720,25 @@ impute_values = {
     'Arnhem/Nijmegen': 2893
 }
 
-# Condition, i only want to impute houses, not garages or storage for example
-condition = df['Eengezins_Meergezins'].isin(['Eengezinswoning', 'Meergezinswoning'])
+# WOZ per square meter has to be empty 
+missing_woz_condition = df['WOZ waarde per m2'].isnull()
 
-# Impute missing values in 'WOZ waarde per m2' based on the condition that property is a house 
-df['WOZ waarde per m2'] = np.where(
-    df['WOZ waarde per m2'].isnull() & condition,
-    df['regio'].map(impute_values),
-    df['WOZ waarde per m2']
+df.loc[missing_woz_condition, 'WOZ waarde per m2'] = (
+    df.loc[missing_woz_condition, 'regio'].map(impute_values)
 )
+
+#now its 0,006%
+#Use these values for the final imputation of missing WOZ-waarde of 13%, by imputing these averages and multipling them with the m2 of the property
+
+df['WOZ waarde'] = np.where(
+    df['WOZ waarde'].isnull() & df['WOZ waarde per m2'].notnull()  & (df['Verhuurbaar vloeroppervlakte'] > 0),
+    df['WOZ waarde per m2'].astype(float) * df['Verhuurbaar vloeroppervlakte'].astype(float),
+    df['WOZ waarde'] 
+)
+#force it to two decimals
+df['WOZ waarde'] = df['WOZ waarde'].apply(lambda x: f"{x:.2f}" if pd.notnull(x) else None)
+
+#Now its missing 2% 
 
 #write to cleaned data
 df.to_csv('cleaned_data.csv', index=False)
