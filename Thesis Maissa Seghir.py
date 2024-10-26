@@ -668,8 +668,24 @@ region_dict = {
 df['regio'] = df['Gemeente'].str.lower().str.strip().apply(lambda x: region_dict.get(x, 'Unknown Region'))
 
 
+#WOZ per m2(WWS) and WOZ(WWS) imputation, WOZ WWS has the least missing values so i will first impute WOZ per m2 based on WOZ WWS and Verhuurbaar vloeroppervlakte (the m2) and devide the total with the m2
+
+df['WOZ waarde per m2 (WWS)'] = np.where(
+    df['WOZ waarde (WWS)'].notnull() & (df['Verhuurbaar vloeroppervlakte'] > 0),
+    df['WOZ waarde (WWS)'] / df['Bruto vloeroppervlakte'],
+    None  # Set to None if the condition is not met
+)
+
+#Went from around 19% to 7,5%, which is good
+
+#LATER NAAR KIJKEN
 #Impute average WOZ-waarde per suqare meter based on averages per COROP gebied (Dictionary), however, i only want this done for properties that are houses, not parking spots or something 
 #At first missing % is 19%
+#First, if WOZ exists, and Bruto vloeroppervlakte is not 0, we take the WOZ waarde and deivde it by the Bruto vloeroppervlakte   
+
+
+
+
 
 # Mapping 
 impute_values = {
