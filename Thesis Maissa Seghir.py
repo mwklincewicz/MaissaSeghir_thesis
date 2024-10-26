@@ -6,7 +6,7 @@ import seaborn as sns
 from datetime import datetime
 from sklearn.impute import KNNImputer
 from sklearn.preprocessing import LabelEncoder
-
+import re
 
 
 #Open the file and check df
@@ -548,17 +548,6 @@ df['Maximaal_redelijke_huur'] = df['Maximaal_redelijke_huur'].replace([0.0,0.01]
 df['Streefhuur'] = df['Streefhuur'].replace([0.01,0.02,1.0,10.0,10.4], np.nan)
 
 
-#Streefhuur is around 70% of max_redelijke_huur, so max-redelijke huur is around 142% of streefhuur, if streefhuur is not missing and max redelijke huur is, im imputing it based on this information
-#https://corporatiestrateeg.nl/corporatiebeleid/huurbeleid/wat-is-de-streefhuur/
-
-df['Maximaal_redelijke_huur'] = np.where(
-    df['Maximaal_redelijke_huur'].isna() & df['Streefhuur'].notna(),
-    df['Streefhuur'] * 1.43, 
-    df['Maximaal_redelijke_huur']  
-)
-
-df['Maximaal_redelijke_huur'] = df['Maximaal_redelijke_huur'].round(2)
-
 #Imputing max_redelijke_huur based on calculations provided by the government, for every point that the house has, you can sharge approximately 5.55 in rent
 #Source=https://wetten.overheid.nl/BWBR0015386/2021-07-01#BijlageI
 
@@ -571,7 +560,127 @@ def impute_max_rent(df):
 
 impute_max_rent(df)
 
+#Streefhuur is around 70% of max_redelijke_huur, so max-redelijke huur is around 142% of streefhuur, if streefhuur is not missing and max redelijke huur is, im imputing it based on this information
+#https://corporatiestrateeg.nl/corporatiebeleid/huurbeleid/wat-is-de-streefhuur/
+
+df['Maximaal_redelijke_huur'] = np.where(
+    df['Maximaal_redelijke_huur'].isna() & df['Streefhuur'].notna(),
+    df['Streefhuur'] * 1.43, 
+    df['Maximaal_redelijke_huur']  
+)
+
+df['Maximaal_redelijke_huur'] = df['Maximaal_redelijke_huur'].round(2)
+
+
+
 #Missing % went from around 30/40% to 1.15%
+#Now doing WOZ-values 
+
+#Check gemeenten we have to map into regions: 
+
+# Display all distinct items in the "Gemeente" column
+#distinct_gemeente = df['Gemeente'].unique()
+
+# Print each distinct item
+#for gemeente in distinct_gemeente:
+    #print(gemeente) #Needed this part for mapping gemeenten into regions but i dont want to run this every time, if you want to run it then remove hashtag 
+
+#Now i will treat missing values for WOZ-waarde 
+# Define the region for each municipality we have houses in
+
+region_dict = {
+    # Noord-Limburg
+    'molenhoek': 'Noord-Limburg', 'mook': 'Noord-Limburg', 'middelaar': 'Noord-Limburg', 'plasmolen': 'Noord-Limburg',
+    'gennep': 'Noord-Limburg', 'milsbeek': 'Noord-Limburg', 'heijen': 'Noord-Limburg', 'ottersum': 'Noord-Limburg', 
+    'ven-zelderheide': 'Noord-Limburg', 'bergen': 'Noord-Limburg', 'well': 'Noord-Limburg', 'afferden': 'Noord-Limburg', 
+    'siebengewald': 'Noord-Limburg', 'wellerlooi': 'Noord-Limburg', 'venray': 'Noord-Limburg', 'oostrum': 'Noord-Limburg', 
+    'ysselsteyn': 'Noord-Limburg', 'leunen': 'Noord-Limburg', 'oirlo': 'Noord-Limburg', 'merselo': 'Noord-Limburg', 
+    'castenray': 'Noord-Limburg', 'veulen': 'Noord-Limburg', 'heide': 'Noord-Limburg', 'vredepeel': 'Noord-Limburg', 
+    'smakt': 'Noord-Limburg', 'wanssum': 'Noord-Limburg', 'blitterswijck': 'Noord-Limburg', 'geijsteren': 'Noord-Limburg',
+    'meerlo': 'Noord-Limburg', 'tienray': 'Noord-Limburg', 'swolgen': 'Noord-Limburg', 'horst': 'Noord-Limburg', 
+    'grubbenvorst': 'Noord-Limburg', 'melderslo': 'Noord-Limburg', 'america': 'Noord-Limburg', 'lottum': 'Noord-Limburg', 
+    'hegelsom': 'Noord-Limburg', 'meterik': 'Noord-Limburg', 'broekhuizenvorst': 'Noord-Limburg', 
+    'broekhuizen': 'Noord-Limburg', 'griendtsveen': 'Noord-Limburg', 'sevenum': 'Noord-Limburg', 
+    'kronenberg': 'Noord-Limburg', 'evertsoord': 'Noord-Limburg', 'velden': 'Noord-Limburg', 'arcen': 'Noord-Limburg', 
+    'lomm': 'Noord-Limburg', 'venlo': 'Noord-Limburg', 'tegelen': 'Noord-Limburg', 'belfeld': 'Noord-Limburg', 
+    'steyl': 'Noord-Limburg', 'maasbree': 'Noord-Limburg', 'baarlo': 'Noord-Limburg','baarlo lb':'Noord-Limburg', 'panningen': 'Noord-Limburg', 
+    'helden': 'Noord-Limburg', 'beringe': 'Noord-Limburg', 'grashoek': 'Noord-Limburg', 'egchel': 'Noord-Limburg', 
+    'koningslust': 'Noord-Limburg', 'meijel': 'Noord-Limburg', 'kessel': 'Noord-Limburg', 
+    'kessel-eik': 'Noord-Limburg', 'reuver': 'Noord-Limburg', 'offenbeek': 'Noord-Limburg', 'beesel': 'Noord-Limburg',
+
+    # Midden-Limburg
+    'nederweert': 'Midden-Limburg', 'ospel': 'Midden-Limburg', 'nederweert-eind': 'Midden-Limburg', 
+    'leveroy': 'Midden-Limburg', 'ospeldijk': 'Midden-Limburg', 'weert': 'Midden-Limburg', 'stramproy': 'Midden-Limburg', 
+    'altweerterheide': 'Midden-Limburg', 'tungelroy': 'Midden-Limburg', 'swartbroek': 'Midden-Limburg', 
+    'laar': 'Midden-Limburg', 'ittervoort': 'Midden-Limburg', 'ell': 'Midden-Limburg', 'neeritter': 'Midden-Limburg', 
+    'hunsel': 'Midden-Limburg', 'haler': 'Midden-Limburg', 'heythuysen': 'Midden-Limburg', 
+    'baexem': 'Midden-Limburg', 'grathem': 'Midden-Limburg', 'kelpen-oler': 'Midden-Limburg', 
+    'roggel': 'Midden-Limburg', 'neer': 'Midden-Limburg', 'heibloem': 'Midden-Limburg', 
+    'haelen': 'Midden-Limburg', 'horn': 'Midden-Limburg', 'buggenum': 'Midden-Limburg', 
+    'nunhem': 'Midden-Limburg', 'heel': 'Midden-Limburg', 'wessem': 'Midden-Limburg', 
+    'beegden': 'Midden-Limburg', 'panheel': 'Midden-Limburg', 'thorn': 'Midden-Limburg', 
+    'maasbracht': 'Midden-Limburg', 'linne': 'Midden-Limburg', 'stevensweert': 'Midden-Limburg', 
+    'brachterbeek': 'Midden-Limburg', 'ohe en laak': 'Midden-Limburg', 'roermond': 'Midden-Limburg', 
+    'maasniel': 'Midden-Limburg', 'herten': 'Midden-Limburg', 'merum': 'Midden-Limburg', 
+    'leeuwen': 'Midden-Limburg', 'asenray': 'Midden-Limburg', 'ool': 'Midden-Limburg', 
+    'swalmen': 'Midden-Limburg', 'boukoul': 'Midden-Limburg', 'asselt': 'Midden-Limburg', 
+    'herkenbosch': 'Midden-Limburg', 'melick': 'Midden-Limburg', 'vlodrop': 'Midden-Limburg', 
+    'montfort': 'Midden-Limburg', 'posterholt': 'Midden-Limburg', 'sint odilienberg': 'Midden-Limburg', 
+    'echt': 'Midden-Limburg', 'susteren': 'Midden-Limburg', 'pey': 'Midden-Limburg', 
+    'nieuwstadt': 'Midden-Limburg', 'koningsbosch': 'Midden-Limburg', 'sint joost': 'Midden-Limburg', 
+    'roosteren': 'Midden-Limburg', 'maria hoop': 'Midden-Limburg', 'dieteren': 'Midden-Limburg',
+
+    # Zuid-Limburg
+    'sittard': 'Zuid-Limburg', 'geleen': 'Zuid-Limburg', 'born': 'Zuid-Limburg', 
+    'munstergeleen': 'Zuid-Limburg', 'limbricht': 'Zuid-Limburg', 'grevenbicht': 'Zuid-Limburg', 
+    'buchten': 'Zuid-Limburg', 'obbicht': 'Zuid-Limburg', 'einighausen': 'Zuid-Limburg', 
+    'guttecoven': 'Zuid-Limburg', 'holtum': 'Zuid-Limburg', 'papenhoven': 'Zuid-Limburg', 
+    'stein': 'Zuid-Limburg', 'elsloo': 'Zuid-Limburg', 'urmond': 'Zuid-Limburg', 
+    'berg aan de maas': 'Zuid-Limburg', 'meers': 'Zuid-Limburg', 'beek': 'Zuid-Limburg', 'beek lb':'Zuid-Limburg',
+    'spaubeek': 'Zuid-Limburg', 'neerbeek': 'Zuid-Limburg', 'genhout': 'Zuid-Limburg', 
+    'geverik': 'Zuid-Limburg', 'oirsbeek': 'Zuid-Limburg', 'schinnen': 'Zuid-Limburg', 
+    'amstenrade': 'Zuid-Limburg', 'puth': 'Zuid-Limburg', 'doenrade': 'Zuid-Limburg', 
+    'sweikhuizen': 'Zuid-Limburg', 'nuth': 'Zuid-Limburg', 'hulsberg': 'Zuid-Limburg', 
+    'schimmert': 'Zuid-Limburg', 'wijnandsrade': 'Zuid-Limburg', 'vaesrade': 'Zuid-Limburg', 
+    'wijlre': 'Zuid-Limburg', 'pienk': 'Zuid-Limburg', 'kerkrade': 'Zuid-Limburg', 
+    'landgraaf': 'Zuid-Limburg', 'hoensbroek': 'Zuid-Limburg', 'enckhuizen': 'Zuid-Limburg', 
+    'heerlen': 'Zuid-Limburg', 'aubel': 'Zuid-Limburg', 'dalem': 'Zuid-Limburg', 
+    'meerlo': 'Zuid-Limburg', 'nederweert': 'Zuid-Limburg', 'borchgrave': 'Zuid-Limburg', 
+    'laak': 'Zuid-Limburg', 'haspel': 'Zuid-Limburg', 'guelders': 'Zuid-Limburg', 
+    'gennep': 'Zuid-Limburg', 'landgraaf': 'Zuid-Limburg', 'bunde': 'Zuid-Limburg', 
+    'hoofddorp': 'Zuid-Limburg', 'roermond': 'Zuid-Limburg', 'riemst': 'Zuid-Limburg', 
+    'beekdaelen': 'Zuid-Limburg', 'hoensbroek': 'Zuid-Limburg','bocholtz':'Zuid-Limburg', 'brunssum':'Zuid-Limburg',
+     'cadier en keer' : 'Zuid-Limburg', 'eygelshoven' : 'Zuid-Limburg',  'geulle' : 'Zuid-Limburg','jabeek':'Zuid-Limburg',
+     'klimmen': 'Zuid-Limburg','merkelbeek': 'Zuid-Limburg','mheer': 'Zuid-Limburg','sint odiliÃ«nberg': 'Zuid-Limburg','voerendaal': 'Zuid-Limburg',
+     'maastricht':'Zuid-Limburg',
+
+    #Noord-Brabant
+
+    'budel': 'Zuidoost-Noord-Brabant', 'helmond': 'Zuidoost-Noord-Brabant','maarheeze': ' Zuidoost-Noord-Brabant','someren': ' Zuidoost-Noord-Brabant','waalre': ' Zuidoost-Noord-Brabant',
+
+    #gelderland
+
+    'wijchen': 'Arnhem/Nijmegen'
+}
+
+
+# Normalize the 'Gemeente' values and impute
+df['regio'] = df['Gemeente'].str.lower().str.strip().apply(lambda x: region_dict.get(x, 'Unknown Region'))
+
+
+#Impute average WOZ-waarde per suqare meter based on averages per COROP gebied (Dictionary)
+#At first missing % is 19%
+
+impute_values = {
+    'Noord-Limburg': 2164,
+    'Midden-Limburg': 2121,
+    'Zuid-Limburg': 2054,
+    'Zuidoost-Noord-Brabant': 2866,
+    'Arnhem/Nijmegen': 2893
+}
+
+# Impute missing values in 'WOZ waarde per m2'
+df['WOZ waarde per m2'] = df['WOZ waarde per m2'].fillna(df['regio'].map(impute_values))
 
 
 #write to cleaned data
