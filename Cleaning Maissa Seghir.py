@@ -1,3 +1,5 @@
+#RUN THIS FIRST TO CLEAN THE DATAFRAME
+
 #Importing nessecary libraries
 import pandas as pd 
 import numpy as np
@@ -753,10 +755,7 @@ df['WOZ waarde'] = np.where(
 df['WOZ waarde'] = df['WOZ waarde'].apply(lambda x: f"{x:.2f}" if pd.notnull(x) else None)
 
 #Now its missing 2% 
-
-
-
-
+ 
 
 #write to cleaned data
 df.to_csv('cleaned_data.csv', index=False)
