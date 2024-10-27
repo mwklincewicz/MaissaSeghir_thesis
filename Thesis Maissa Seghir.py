@@ -84,9 +84,10 @@ def display_missing_values(df, max_columns=None, max_rows=None):
 missing_value_percentages = df.isnull().mean() * 100
 threshold = 85
 df = df.loc[:, missing_value_percentages <= threshold]
-drop = ['REkey_vicncn', 'ID_Huurovereenkomst', 'VIBDMEAS_Huurobject_id', 'VICDCONDCALC_ID', 'id_huurovereenkomst1', 'id_huurovereenkomst2']
+drop = ['REkey_vicncn', 'ID_Huurovereenkomst', 'VIBDMEAS_Huurobject_id', 'VICDCONDCALC_ID', 'id_huurovereenkomst1', 'id_huurovereenkomst2', 'Bedrijfswaarde','Historische kostprijs'] #Dropping double columns, alco dropping bedrijwswaarde, historische kostprijs and EP2-waarde
 df = df.drop(columns=[col for col in drop if col in df.columns])
 
+#Bedrijfswaarde I genuinly do not know how to impute properly because i dont know the defition behind is. Same goes for Historische kostprijs
 #print(df.head()) #remove hashtag if you want to see this code. 
 
 #making my binary target variable
@@ -230,6 +231,19 @@ df['Energielabel'] = le.inverse_transform(df['Energielabel_encoded'].round().ast
 
 # Check changes
 #print(df[['Energielabel', 'Energielabel_encoded']].head())  # remove hashtag if you want to see this code
+
+#Lets impute EP2 value which has correlation with energylabel, is the energylabel is A or better, EP2 is 0.0, if Energielabel is N.v.t., EP2 shouldnt have a value, so im adding a binaryflag and placeholder of -1
+
+df['EP2_waarde'] = np.where(
+    df['EP2_waarde'].isna(),  # Check if EP2_waarde is empty (NaN)
+    np.where(df['Energielabel'].isin(['A', 'A+', 'A++', 'A+++', 'A++++']), 0.0,
+             np.where(df['Energielabel'] == 'N.v.t.', -1, df['EP2_waarde'])),
+    df['EP2_waarde']
+)
+
+df['EP2_waarde flag'] = (df['EP2_waarde'] == -1).astype(int)
+
+#went from 16% to 8%
 
 #fixing empty columns in Afmelddatum_VABI, if there is no date it means this project did not include the property. So it isnt missing data.
 #ill add a placeholder in the future and a binary flag.
@@ -739,6 +753,10 @@ df['WOZ waarde'] = np.where(
 df['WOZ waarde'] = df['WOZ waarde'].apply(lambda x: f"{x:.2f}" if pd.notnull(x) else None)
 
 #Now its missing 2% 
+
+
+
+
 
 #write to cleaned data
 df.to_csv('cleaned_data.csv', index=False)
