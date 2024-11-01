@@ -12,7 +12,7 @@ import re
 from sklearn.model_selection import train_test_split
 from scipy.stats import chi2_contingency
 from matplotlib_venn import venn2
-from imblearn.over_sampling import SMOTE
+from imblearn.over_sampling import SMOTENC
 
 # Reading cleaned dataset
 df = pd.read_csv('cleaned_data.csv')
@@ -21,8 +21,9 @@ print(df.info())
 print(df.describe())
 
 # Data split into labeled and unlabeled data
-labeled_data = df[df['Target'].notna()]
-unlabeled_data = df[df['Target'].isna()]
+# Data split into labeled and unlabeled data
+labeled_data = df[df['Target'].notna()].copy()
+unlabeled_data = df[df['Target'].isna()].copy()
 
 # Save the labeled and unlabeled data to separate CSV files
 labeled_data.to_csv('labeled_data.csv', index=False)
@@ -38,42 +39,65 @@ def display_missing_values(df, max_columns=None, max_rows=None):
     
     print(missing_value_percentages)
 
-# I dont want to run this every time
-# print(f"Missing data % in labeled data:")
-# display_missing_values(labeled_data, max_columns=None, max_rows=None)
-# print(f"Missing data % in unlabeled data:")
-# display_missing_values(unlabeled_data, max_columns=None, max_rows=None)
+print(f"Missing data % in labeled data:")
+display_missing_values(labeled_data, max_columns=None, max_rows=None)
+print(f"Missing data % in unlabeled data:")
+display_missing_values(unlabeled_data, max_columns=None, max_rows=None)
 
-# Labeled data has more missing % than unlabeled data, likely because labeled data has older properties and thus worse registration.
-# Im just going to drop the rows with missing values for the column EP2_waarde since i dont know how else to impute it.
-# Highest missing % is under 5 percent so im leaving the dataset like this as is.
-labeled_data = labeled_data.dropna(subset=['EP2_waarde'])
-unlabeled_data = unlabeled_data.dropna(subset=['EP2_waarde'])
+#Dropping rows with missing values
+labeled_data = labeled_data.dropna()
 
-
+#Doing some feature transformation
 # Transform "Target" into a binary column in labeled data
 labeled_data['Target_binary'] = np.where(labeled_data['Contract_duur'] > 3, 1, 0)
 
-# I dont want to run this every time
-# print(f"Missing data % in labeled data after column drop:")
-# display_missing_values(labeled_data, max_columns=None, max_rows=None)
-# print(f"Missing data % in unlabeled data after column drop:")
-# display_missing_values(unlabeled_data, max_columns=None, max_rows=None)
+#Removing the numbers from the street 
+labeled_data['Straat'] = labeled_data['Straat'].str.replace(r'\d+', '', regex=True)
+labeled_data['Straat'] = labeled_data['Straat'].str.strip()
+print(labeled_data['Straat'].head(20))
 
-# TEMPORAL SPLIT
+# Convert columns to datetime using .loc to avoid SettingWithCopyWarning
+labeled_data.loc[:, 'Construction'] = pd.to_datetime(labeled_data['Year of construction'])
+labeled_data.loc[:, 'Demolition'] = pd.to_datetime(labeled_data['Year of demolition'])
+labeled_data.loc[:, 'VABI_finished'] = pd.to_datetime(labeled_data['Amfelddatum_VABI'])
+labeled_data.loc[:, 'Contract_starting'] = pd.to_datetime(labeled_data['Ingangsdatum_contract'])
 
-# I want an 80% training data and 20% test data, so calculating the 80th percentile of house ages:
-# This way i get a fair 80/20 split
-house_age_cutoff = labeled_data['Huis_leeftijd'].quantile(0.80)
+# Extract year from all datetime columns using .loc to set new columns
+for col in labeled_data.select_dtypes(include=['datetime']).columns:
+    labeled_data.loc[:, f'{col}_year'] = labeled_data[col].dt.year
 
-# Putting 80% into training en 20% into testing based on temporal data of the house age
-train_data_temp = labeled_data[labeled_data['Huis_leeftijd'] > house_age_cutoff]  # Training set with only older houses (80%)
-test_data_temp = labeled_data[labeled_data['Huis_leeftijd'] <= house_age_cutoff]  # Testing set with only newer houses (20%)
+# Drop the original columns with .loc
+labeled_data.drop(columns=['Year of construction', 'Year of demolition', 'Amfelddatum_VABI', 'Ingangsdatum_contract'], inplace=True)
 
-# A random split on labeled data for a comparison in the experiment
-train_data_rand, test_data_rand = train_test_split(labeled_data, test_size=0.2, random_state=777)  # randomstate 777 for luck!
 
-#CHECK FOR TARGET VARIABLE BALANCE IN BOTH SETS:
+# TEMPORAL SPLIT AND RANDOM SPLIT
+
+
+# Perform a random split to determine the training set size for an 80/20 split
+train_data_rand, test_data_rand = train_test_split(labeled_data, test_size=0.2, random_state=777)
+
+# Get the size of the training set from the random split
+train_size = train_data_rand.shape[0]
+
+# Sort the labeled data by 'Huis_leeftijd' in descending order (oldest houses first)
+labeled_data_sorted = labeled_data.sort_values(by='Huis_leeftijd', ascending=False)
+
+# Select the top 'train_size' rows for the temporal training set
+train_data_temp = labeled_data_sorted.iloc[:train_size]
+
+# The remaining rows after the training set will form the test set
+test_data_temp = labeled_data_sorted.iloc[train_size:]
+
+# Display the sizes to verify the split
+print("Training set size (temporal):", train_data_temp.shape[0])
+print("Testing set size (temporal):", test_data_temp.shape[0])
+
+# Check the sizes of the splits
+print("Training set size (temporal):", train_data_temp.shape[0])
+print("Testing set size (temporal):", test_data_temp.shape[0])
+print("Total size:", labeled_data.shape[0])
+
+#CHECK FOR TARGET CLASS BALANCE IN BOTH SETS:
 #Plot class balance for both classes
 def check_class_balance(data, target_variable, title):
     class_counts = data[target_variable].value_counts()
@@ -136,7 +160,7 @@ def feature_engineering(df):
     features['avg_contract_duration_per_region'] = df.groupby('regio')['Contract_duur'].transform('mean')
 
     # Rolling Mean for Property Value
-    df = df.sort_values(['VIBDRO_Huurobject_id', 'Year of construction'])
+    df = df.sort_values(['VIBDRO_Huurobject_id', 'Construction_year'])
     features['rolling_mean_property_value'] = df.groupby('VIBDRO_Huurobject_id')['WOZ waarde'].transform(lambda x: x.rolling(window=3, min_periods=1).mean())
 
     #Amount of bedrooms in a house
@@ -315,20 +339,22 @@ interpret_chi2_results(chi2_results_rand_df)
 #Most categorical features are highly correlated with the target variable, That is good
 #Going to drop low correlation columns 
 
-
 #Going to drop low corr for temporal data and random data
 #Dropping the same columns in temporal split and random split for the sake of Consistent preprocessing, 
 # so that any differences in model performance can be attributed to the splits themselves rather than discrepancies in the feature set
-columns_to_drop = ['Target','Ontvangstdatum_opzegging','Einddatum_contract','Contract_duur','Land',
-'Aardgasloze_woning','Geen_deelname_energieproject','VERA_Type','Straat','Huurklasse','Energie_index',
-'Badkamer/doucheruimte 1', 'Toilet (Sanitair 1)', 'Totale punten (afgerond)', 'Totale punten (onafgerond)',
-'WOZ waarde per m2', 'WOZ waarde per m2 (WWS)', 'Woonkamer', 'Maximaal_redelijke_huur', 'Streefhuur',
-'Verwarmde overige ruimten flag','Year of demolition flag', 'Energielabel_encoded', 'EP2_waarde flag',
-'Ontvangstdatum_opzegging flag', 'Reden_opzegging flag', 'avg_contract_duration_per_property',
-'avg_contract_duration_per_property_type', 'avg_contract_duration_per_complex','avg_contract_duration_per_city',
-'avg_contract_duration_per_region','rolling_mean_property_value','Aantal_slaapkamers' ]  #Also including data thats 100% correlated to target variable, such as contract_end_date
+columns_to_drop = ['Target','Ontvangstdatum_opzegging','Einddatum_contract','Contract_duur','Land','Huurobject', 'Energie_index', 
+    'Marktwaarde', 'Totaal kamers', 'Totale punten (afgerond)', 
+    'Totale punten (onafgerond)', 'WOZ waarde', 'WOZ waarde (WWS)', 'WOZ waarde per m2', 
+    'WOZ waarde per m2 (WWS)', 'Woonkamer', 'Markthuur', 'Maximaal_redelijke_huur', 'Streefhuur', 
+    'Year of demolition flag', 'Energielabel_encoded', 'EP2_waarde flag', 'Ontvangstdatum_opzegging flag', 
+    'Reden_opzegging flag', 'Demolition_year', 'avg_contract_duration_per_property', 
+    'avg_contract_duration_per_property_type', 'avg_contract_duration_per_complex', 
+    'avg_contract_duration_per_city', 'avg_contract_duration_per_region', 'rolling_mean_property_value', 
+    'Aantal_slaapkamers', 'Aardgasloze_woning','Geen_deelname_energieproject' ]  #Also including data thats 100% correlated to target variable, such as contract_end_date
 train_data_temp_with_features = train_data_temp_with_features.drop(columns=columns_to_drop)
 train_data_rand_with_features = train_data_rand_with_features.drop(columns=columns_to_drop)
+
+
 
 # Prepare features and target variable
 X_temp = train_data_temp_with_features.drop(columns=['Target_binary'])
@@ -337,21 +363,48 @@ y_temp = train_data_temp_with_features['Target_binary']
 X_rand = train_data_rand_with_features.drop(columns=['Target_binary'])
 y_rand = train_data_rand_with_features['Target_binary']
 
-#I will still need to encode categorical variables if i want to use SMOTE... 
-#SO despite trees not really needing encoding i will still encode categorical variables so i can use SMOTE effectively
+#Going to do categorical smote
 
+# Get categorical feature indices temp
+categorical_indices_temp = [i for i, col in enumerate(X_temp.columns) if X_temp[col].dtype == 'object']
+print("Indices of categorical features in X_temp:", categorical_indices_temp)
 
+# Get categorical feature indices rand
+categorical_indices_rand = [i for i, col in enumerate(X_rand.columns) if X_rand[col].dtype == 'object']
+print("Indices of categorical features in X_rand:", categorical_indices_rand)
 
-"""# Apply SMOTE to the temporal training set
-smote = SMOTE(random_state=777)
-X_temp_balanced, y_temp_balanced = smote.fit_resample(X_temp, y_temp)
+#Still get issues with some datetype columns, only extracting years from it:
+# Convert datetime columns to year in X_temp
+for col in X_temp.select_dtypes(include=['datetime64']):
+    X_temp[col] = X_temp[col].dt.year
 
-# Apply SMOTE to the random training set
-X_rand_balanced, y_rand_balanced = smote.fit_resample(X_rand, y_rand)
+# Convert datetime columns to year in X_rand
+for col in X_rand.select_dtypes(include=['datetime64']):
+    X_rand[col] = X_rand[col].dt.year
 
-# Check the class distribution after SMOTE
-print("Class distribution in Temporal Training Set after SMOTE:")
+# Check the number of rows in X_temp
+num_rows_temp = X_temp.shape[0]  # or len(X_temp)
+print(f"Number of rows in X_temp before SMOTENC: {num_rows_temp}")
+
+# Check the number of rows in X_rand
+num_rows_rand = X_rand.shape[0]  # or len(X_rand)
+print(f"Number of rows in X_rand before SMOTENC: {num_rows_rand}")
+
+#The categorical feautre indices for SMOTENC
+categorical_features_indices = [1, 4, 5, 7, 8, 9, 10, 11, 31, 32, 33, 53, 61]
+
+# Apply SMOTENC to the temporal training set
+smote_nc_temp = SMOTENC(categorical_features=categorical_features_indices, random_state=777)
+X_temp_balanced, y_temp_balanced = smote_nc_temp.fit_resample(X_temp, y_temp)
+
+# Apply SMOTENC to the random training set
+smote_nc_rand = SMOTENC(categorical_features=categorical_features_indices, random_state=777)
+X_rand_balanced, y_rand_balanced = smote_nc_rand.fit_resample(X_rand, y_rand)
+
+# Check the class distribution after SMOTENC
+print("Class distribution in Temporal Training Set after SMOTENC:")
 print(y_temp_balanced.value_counts())
 
-print("Class distribution in Random Training Set after SMOTE:")
-print(y_rand_balanced.value_counts())"""
+print("Class distribution in Random Training Set after SMOTENC:")
+print(y_rand_balanced.value_counts()) 
+
