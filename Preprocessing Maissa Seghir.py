@@ -408,3 +408,10 @@ print(y_temp_balanced.value_counts())
 print("Class distribution in Random Training Set after SMOTENC:")
 print(y_rand_balanced.value_counts()) 
 
+# Save the balanced temporal split for the next step
+X_temp_balanced.to_csv('X_temp_balanced.csv', index=False)
+y_temp_balanced.to_csv('y_temp_balanced.csv', index=False)
+
+# Save the balanced random split for the next step
+X_rand_balanced.to_csv('X_rand_balanced.csv', index=False)
+y_rand_balanced.to_csv('y_rand_balanced.csv', index=False)
