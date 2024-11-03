@@ -1,5 +1,5 @@
 # AFTER CLEANING RUN THIS FILE
-
+#Preprocessing the features so that the decision tree will be able to correctly process the data
 # Importing libraries
 import pandas as pd
 import numpy as np
@@ -56,6 +56,10 @@ labeled_data['Straat'] = labeled_data['Straat'].str.replace(r'\d+', '', regex=Tr
 labeled_data['Straat'] = labeled_data['Straat'].str.strip()
 print(labeled_data['Straat'].head(20))
 
+#Removing letters from postal code, this loses some of its granularity but it's still more precise then a city name
+labeled_data['Postcode_cijfers'] = labeled_data['Postcode'].str.replace(r'[A-Za-z]', '', regex=True)
+labeled_data = labeled_data.drop(columns=["Postcode"])
+
 # Convert columns to datetime using .loc to avoid SettingWithCopyWarning
 labeled_data.loc[:, 'Construction'] = pd.to_datetime(labeled_data['Year of construction'])
 labeled_data.loc[:, 'Demolition'] = pd.to_datetime(labeled_data['Year of demolition'])
@@ -68,6 +72,7 @@ for col in labeled_data.select_dtypes(include=['datetime']).columns:
 
 # Drop the original columns with .loc
 labeled_data.drop(columns=['Year of construction', 'Year of demolition', 'Amfelddatum_VABI', 'Ingangsdatum_contract'], inplace=True)
+
 
 
 # TEMPORAL SPLIT AND RANDOM SPLIT
@@ -350,7 +355,8 @@ columns_to_drop = ['Target','Ontvangstdatum_opzegging','Einddatum_contract','Con
     'Reden_opzegging flag', 'Demolition_year', 'avg_contract_duration_per_property', 
     'avg_contract_duration_per_property_type', 'avg_contract_duration_per_complex', 
     'avg_contract_duration_per_city', 'avg_contract_duration_per_region', 'rolling_mean_property_value', 
-    'Aantal_slaapkamers', 'Aardgasloze_woning','Geen_deelname_energieproject' ]  #Also including data thats 100% correlated to target variable, such as contract_end_date
+    'Aantal_slaapkamers', 'Aardgasloze_woning','Geen_deelname_energieproject','Contractnummer','VIBDRO_Huurobject_id']  #Also including data thats 100% correlated to target variable, such as contract_end_date
+#Also removed all the ID's
 train_data_temp_with_features = train_data_temp_with_features.drop(columns=columns_to_drop)
 train_data_rand_with_features = train_data_rand_with_features.drop(columns=columns_to_drop)
 
@@ -373,7 +379,7 @@ print("Indices of categorical features in X_temp:", categorical_indices_temp)
 categorical_indices_rand = [i for i, col in enumerate(X_rand.columns) if X_rand[col].dtype == 'object']
 print("Indices of categorical features in X_rand:", categorical_indices_rand)
 
-#Still get issues with some datetype columns, only extracting years from it:
+#Still get issues with some datetype columns, only extracting years from it, i know i did this earlier but its still giving me bugs:
 # Convert datetime columns to year in X_temp
 for col in X_temp.select_dtypes(include=['datetime64']):
     X_temp[col] = X_temp[col].dt.year
@@ -390,7 +396,7 @@ print(f"Number of rows in X_temp before SMOTENC: {num_rows_temp}")
 num_rows_rand = X_rand.shape[0]  # or len(X_rand)
 print(f"Number of rows in X_rand before SMOTENC: {num_rows_rand}")
 
-#The categorical feautre indices for SMOTENC
+"""#The categorical feautre indices for SMOTENC
 categorical_features_indices = [1, 4, 5, 7, 8, 9, 10, 11, 31, 32, 33, 53, 61]
 
 # Apply SMOTENC to the temporal training set
@@ -414,4 +420,4 @@ y_temp_balanced.to_csv('y_temp_balanced.csv', index=False)
 
 # Save the balanced random split for the next step
 X_rand_balanced.to_csv('X_rand_balanced.csv', index=False)
-y_rand_balanced.to_csv('y_rand_balanced.csv', index=False)
+y_rand_balanced.to_csv('y_rand_balanced.csv', index=False)"""
