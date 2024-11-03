@@ -47,18 +47,14 @@ display_missing_values(unlabeled_data, max_columns=None, max_rows=None)
 #Dropping rows with missing values
 labeled_data = labeled_data.dropna()
 
-#Doing some feature transformation
+#Doing some feature transformation and dropping columns
 # Transform "Target" into a binary column in labeled data
 labeled_data['Target_binary'] = np.where(labeled_data['Contract_duur'] > 3, 1, 0)
-
-#Removing the numbers from the street 
-labeled_data['Straat'] = labeled_data['Straat'].str.replace(r'\d+', '', regex=True)
-labeled_data['Straat'] = labeled_data['Straat'].str.strip()
-print(labeled_data['Straat'].head(20))
 
 #Removing letters from postal code, this loses some of its granularity but it's still more precise then a city name
 labeled_data['Postcode_cijfers'] = labeled_data['Postcode'].str.replace(r'[A-Za-z]', '', regex=True)
 labeled_data = labeled_data.drop(columns=["Postcode"])
+
 
 # Convert columns to datetime using .loc to avoid SettingWithCopyWarning
 labeled_data.loc[:, 'Construction'] = pd.to_datetime(labeled_data['Year of construction'])
@@ -76,6 +72,7 @@ labeled_data.drop(columns=['Year of construction', 'Year of demolition', 'Amfeld
 
 
 # TEMPORAL SPLIT AND RANDOM SPLIT
+#I am splitting the data before feature engineering because i want to avoid data leakage
 
 
 # Perform a random split to determine the training set size for an 80/20 split
@@ -199,6 +196,7 @@ def feature_engineering(df):
 train_data_temp_with_features = feature_engineering(train_data_temp)
 train_data_rand_with_features = feature_engineering(train_data_rand)
 
+
 # Function to plot correlation matrix, excluding categorical data that does not correlate numerically
 def plot_correlation_matrix(df, title):
     plt.figure(figsize=(12, 10))
@@ -265,7 +263,6 @@ plt.show()
 # Now doing the chi2 test for categorical features
 # Define the categorical features in the dataset
 categorical_features = [
-    'Woning_type', 
     'Energielabel', 
     'Aardgasloze_woning',
     'Geen_deelname_energieproject',
@@ -273,8 +270,6 @@ categorical_features = [
     'Reden_opzegging',
     'Omschrijving_Vastgoed',
     'Eengezins_Meergezins',
-    'VERA_Type',
-    'Straat',
     'Gemeente',
     'regio',
     'Huurklasse'
@@ -349,17 +344,20 @@ interpret_chi2_results(chi2_results_rand_df)
 # so that any differences in model performance can be attributed to the splits themselves rather than discrepancies in the feature set
 columns_to_drop = ['Target','Ontvangstdatum_opzegging','Einddatum_contract','Contract_duur','Land','Huurobject', 'Energie_index', 
     'Marktwaarde', 'Totaal kamers', 'Totale punten (afgerond)', 
-    'Totale punten (onafgerond)', 'WOZ waarde', 'WOZ waarde (WWS)', 'WOZ waarde per m2', 
-    'WOZ waarde per m2 (WWS)', 'Woonkamer', 'Markthuur', 'Maximaal_redelijke_huur', 'Streefhuur', 
-    'Year of demolition flag', 'Energielabel_encoded', 'EP2_waarde flag', 'Ontvangstdatum_opzegging flag', 
+    'Totale punten (onafgerond)', 'WOZ waarde', 'WOZ waarde per m2', 
+    'WOZ waarde per m2 (WWS)', 'Woonkamer','Energielabel', 'Markthuur', 'Maximaal_redelijke_huur', 'Streefhuur', 
+    'Year of demolition flag', 'EP2_waarde flag', 'Ontvangstdatum_opzegging flag', 
     'Reden_opzegging flag', 'Demolition_year', 'avg_contract_duration_per_property', 
     'avg_contract_duration_per_property_type', 'avg_contract_duration_per_complex', 
     'avg_contract_duration_per_city', 'avg_contract_duration_per_region', 'rolling_mean_property_value', 
-    'Aantal_slaapkamers', 'Aardgasloze_woning','Geen_deelname_energieproject','Contractnummer','VIBDRO_Huurobject_id']  #Also including data thats 100% correlated to target variable, such as contract_end_date
+    'Aantal_slaapkamers', 'Aardgasloze_woning','Geen_deelname_energieproject','Contractnummer','VIBDRO_Huurobject_id','Gemeente',
+    'Woning_type','VERA_Type','Straat', 'Reden_opzegging' ]  #Also including data thats 100% correlated to target variable, such as contract_end_date
+#Also added categorical data that i used for feature engineering and i dont want to encode (because its too high cardinality)
 #Also removed all the ID's
+#Removed data thats too high cardinality because i need to encode everything before training trees
+
 train_data_temp_with_features = train_data_temp_with_features.drop(columns=columns_to_drop)
 train_data_rand_with_features = train_data_rand_with_features.drop(columns=columns_to_drop)
-
 
 
 # Prepare features and target variable
@@ -369,50 +367,61 @@ y_temp = train_data_temp_with_features['Target_binary']
 X_rand = train_data_rand_with_features.drop(columns=['Target_binary'])
 y_rand = train_data_rand_with_features['Target_binary']
 
-#Going to do categorical smote
+#Going to do one hot encoding:
+X_temp_encoded = pd.get_dummies(X_temp, drop_first=True)
+X_rand_encoded = pd.get_dummies(X_rand, drop_first=True)
 
-# Get categorical feature indices temp
-categorical_indices_temp = [i for i, col in enumerate(X_temp.columns) if X_temp[col].dtype == 'object']
-print("Indices of categorical features in X_temp:", categorical_indices_temp)
 
-# Get categorical feature indices rand
-categorical_indices_rand = [i for i, col in enumerate(X_rand.columns) if X_rand[col].dtype == 'object']
-print("Indices of categorical features in X_rand:", categorical_indices_rand)
+from imblearn.over_sampling import SMOTE
+import pandas as pd
 
-#Still get issues with some datetype columns, only extracting years from it, i know i did this earlier but its still giving me bugs:
-# Convert datetime columns to year in X_temp
+# Prepare features and target variable
+X_temp = train_data_temp_with_features.drop(columns=['Target_binary'])
+y_temp = train_data_temp_with_features['Target_binary']
+
+X_rand = train_data_rand_with_features.drop(columns=['Target_binary'])
+y_rand = train_data_rand_with_features['Target_binary']
+
+
+#Doing this for troubleshooting purposes, as it went wrong earlier 
 for col in X_temp.select_dtypes(include=['datetime64']):
     X_temp[col] = X_temp[col].dt.year
 
-# Convert datetime columns to year in X_rand
 for col in X_rand.select_dtypes(include=['datetime64']):
     X_rand[col] = X_rand[col].dt.year
 
+# Going to do one hot encoding:
+X_temp_encoded = pd.get_dummies(X_temp, drop_first=True)
+X_rand_encoded = pd.get_dummies(X_rand, drop_first=True)
+
+# check if all categorical data is gone
+categorical_indices_temp = [i for i, col in enumerate(X_temp_encoded.columns) if X_temp_encoded[col].dtype == 'object']
+print("Indices of categorical features in X_temp:", categorical_indices_temp)
+categorical_indices_rand = [i for i, col in enumerate(X_rand_encoded.columns) if X_rand_encoded[col].dtype == 'object']
+print("Indices of categorical features in X_rand:", categorical_indices_rand)
+
 # Check the number of rows in X_temp
-num_rows_temp = X_temp.shape[0]  # or len(X_temp)
-print(f"Number of rows in X_temp before SMOTENC: {num_rows_temp}")
+num_rows_temp = X_temp_encoded.shape[0]  # or len(X_temp)
+print(f"Number of rows in X_temp before SMOTE: {num_rows_temp}")
 
 # Check the number of rows in X_rand
-num_rows_rand = X_rand.shape[0]  # or len(X_rand)
-print(f"Number of rows in X_rand before SMOTENC: {num_rows_rand}")
+num_rows_rand = X_rand_encoded.shape[0]  # or len(X_rand)
+print(f"Number of rows in X_rand before SMOTE: {num_rows_rand}")
 
-"""#The categorical feautre indices for SMOTENC
-categorical_features_indices = [1, 4, 5, 7, 8, 9, 10, 11, 31, 32, 33, 53, 61]
+# Apply SMOTE to the temporal training set
+smote_temp = SMOTE(random_state=777)
+X_temp_balanced, y_temp_balanced = smote_temp.fit_resample(X_temp_encoded, y_temp)
 
-# Apply SMOTENC to the temporal training set
-smote_nc_temp = SMOTENC(categorical_features=categorical_features_indices, random_state=777)
-X_temp_balanced, y_temp_balanced = smote_nc_temp.fit_resample(X_temp, y_temp)
+# Apply SMOTE to the random training set
+smote_rand = SMOTE(random_state=777)
+X_rand_balanced, y_rand_balanced = smote_rand.fit_resample(X_rand_encoded, y_rand)
 
-# Apply SMOTENC to the random training set
-smote_nc_rand = SMOTENC(categorical_features=categorical_features_indices, random_state=777)
-X_rand_balanced, y_rand_balanced = smote_nc_rand.fit_resample(X_rand, y_rand)
-
-# Check the class distribution after SMOTENC
-print("Class distribution in Temporal Training Set after SMOTENC:")
+# Check the class distribution after SMOTE
+print("Class distribution in Temporal Training Set after SMOTE:")
 print(y_temp_balanced.value_counts())
 
-print("Class distribution in Random Training Set after SMOTENC:")
-print(y_rand_balanced.value_counts()) 
+print("Class distribution in Random Training Set after SMOTE:")
+print(y_rand_balanced.value_counts())
 
 # Save the balanced temporal split for the next step
 X_temp_balanced.to_csv('X_temp_balanced.csv', index=False)
@@ -420,4 +429,4 @@ y_temp_balanced.to_csv('y_temp_balanced.csv', index=False)
 
 # Save the balanced random split for the next step
 X_rand_balanced.to_csv('X_rand_balanced.csv', index=False)
-y_rand_balanced.to_csv('y_rand_balanced.csv', index=False)"""
+y_rand_balanced.to_csv('y_rand_balanced.csv', index=False)
