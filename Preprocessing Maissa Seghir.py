@@ -12,7 +12,10 @@ import re
 from sklearn.model_selection import train_test_split
 from scipy.stats import chi2_contingency
 from matplotlib_venn import venn2
-from imblearn.over_sampling import SMOTENC
+from imblearn.over_sampling import SMOTE
+from sklearn.compose import ColumnTransformer
+from sklearn.preprocessing import OneHotEncoder
+
 
 # Reading cleaned dataset
 df = pd.read_csv('cleaned_data.csv')
@@ -20,7 +23,6 @@ print(df.head())
 print(df.info())
 print(df.describe())
 
-# Data split into labeled and unlabeled data
 # Data split into labeled and unlabeled data
 labeled_data = df[df['Target'].notna()].copy()
 unlabeled_data = df[df['Target'].isna()].copy()
@@ -51,7 +53,7 @@ labeled_data = labeled_data.dropna()
 # Transform "Target" into a binary column in labeled data
 labeled_data['Target_binary'] = np.where(labeled_data['Contract_duur'] > 3, 1, 0)
 
-#Removing letters from postal code, this loses some of its granularity but it's still more precise then a city name
+#Removing letters from postal code, this loses some of its granularity but it's still more precise then a city name, also more precise than a region
 labeled_data['Postcode_cijfers'] = labeled_data['Postcode'].str.replace(r'[A-Za-z]', '', regex=True)
 labeled_data = labeled_data.drop(columns=["Postcode"])
 
@@ -72,11 +74,12 @@ labeled_data.drop(columns=['Year of construction', 'Year of demolition', 'Amfeld
 
 
 # TEMPORAL SPLIT AND RANDOM SPLIT
-#I am splitting the data before feature engineering because i want to avoid data leakage
+#I am splitting the data before feature engineering because i want to avoid data leakage, so that new data doesnt influence old data in the temporal split
 
 
-# Perform a random split to determine the training set size for an 80/20 split
-train_data_rand, test_data_rand = train_test_split(labeled_data, test_size=0.2, random_state=777)
+# Perform a random split to determine the training set size for a 60/20/20 split
+train_data_rand, temp_data_rand = train_test_split(labeled_data, test_size=0.4, random_state=777)  # 40% for validation + test
+validation_data_rand, test_data_rand = train_test_split(temp_data_rand, test_size=0.5, random_state=777)  # Split the 40% into 20% validation and 20% test
 
 # Get the size of the training set from the random split
 train_size = train_data_rand.shape[0]
@@ -84,19 +87,30 @@ train_size = train_data_rand.shape[0]
 # Sort the labeled data by 'Huis_leeftijd' in descending order (oldest houses first)
 labeled_data_sorted = labeled_data.sort_values(by='Huis_leeftijd', ascending=False)
 
-# Select the top 'train_size' rows for the temporal training set
+# Calculate sizes for a 60/20/20 split
+train_size = int(0.6 * labeled_data_sorted.shape[0])  
+temp_size = labeled_data_sorted.shape[0] - train_size 
+
+# Select the top 'train_size' so both sets are equally large
 train_data_temp = labeled_data_sorted.iloc[:train_size]
 
-# The remaining rows after the training set will form the test set
-test_data_temp = labeled_data_sorted.iloc[train_size:]
+# The remaining rows will be split into validation and test set
+temp_data_temp = labeled_data_sorted.iloc[train_size:]
+
+# Now split the remaining data into validation and test sets (both 20%)
+validation_data_temp, test_data_temp = train_test_split(temp_data_temp, test_size=0.5, random_state=777)  
+
 
 # Display the sizes to verify the split
-print("Training set size (temporal):", train_data_temp.shape[0])
-print("Testing set size (temporal):", test_data_temp.shape[0])
+print("Training set size (random):", train_data_rand.shape[0])
+print("Validation set size (random):", validation_data_rand.shape[0])
+print("Testing set size (random):", test_data_rand.shape[0])
 
 # Check the sizes of the splits
 print("Training set size (temporal):", train_data_temp.shape[0])
+print("Validation set size (temporal):", validation_data_temp.shape[0])
 print("Testing set size (temporal):", test_data_temp.shape[0])
+
 print("Total size:", labeled_data.shape[0])
 
 #CHECK FOR TARGET CLASS BALANCE IN BOTH SETS:
@@ -118,13 +132,17 @@ def check_class_balance(data, target_variable, title):
 # Checking class balance for the temporal training split
 check_class_balance(train_data_temp, 'Target_binary', 'Temporal Training Split')
 
+# Checking class balance for the validation set (temporal)
+check_class_balance(validation_data_temp, 'Target_binary', 'Temporal Validation Split')
+
 # Checking class balance for the random training split
 check_class_balance(train_data_rand, 'Target_binary', 'Random Training Split')
 
+# Checking class balance for the validation set (random)
+check_class_balance(validation_data_rand, 'Target_binary', 'Random Validation Split')
 
-#There is a class imbalance in both instances where 1 is overrepresentend and 0 is underrepresented. Im doing SMOTE after feature engineering to 
+#There is a class imbalance in all instances where 1 is overrepresentend and 0 is underrepresented.The class imbalance is quite bad so i need SMOTE. Im doing SMOTE after feature engineering to 
 #Make sure classes are balanced in training data 
-
 
 # FEATURE ENGINEERING FOR TRAINING DATA
 # IDEAS 
@@ -192,9 +210,15 @@ def feature_engineering(df):
 
     return df_with_features
 
-# Apply feature engineering
+# Apply feature engineering to every set seperately to avoid data leakage
+
 train_data_temp_with_features = feature_engineering(train_data_temp)
 train_data_rand_with_features = feature_engineering(train_data_rand)
+validation_data_temp_with_features = feature_engineering(validation_data_temp)
+validation_data_rand_with_features = feature_engineering(validation_data_rand)
+test_data_temp_with_features = feature_engineering(test_data_temp)
+test_data_rand_with_features = feature_engineering(test_data_rand)
+
 
 
 # Function to plot correlation matrix, excluding categorical data that does not correlate numerically
@@ -339,9 +363,6 @@ interpret_chi2_results(chi2_results_rand_df)
 #Most categorical features are highly correlated with the target variable, That is good
 #Going to drop low correlation columns 
 
-#Going to drop low corr for temporal data and random data
-#Dropping the same columns in temporal split and random split for the sake of Consistent preprocessing, 
-# so that any differences in model performance can be attributed to the splits themselves rather than discrepancies in the feature set
 columns_to_drop = ['Target','Ontvangstdatum_opzegging','Einddatum_contract','Contract_duur','Land','Huurobject', 'Energie_index', 
     'Marktwaarde', 'Totaal kamers', 'Totale punten (afgerond)', 
     'Totale punten (onafgerond)', 'WOZ waarde', 'WOZ waarde per m2', 
@@ -351,70 +372,108 @@ columns_to_drop = ['Target','Ontvangstdatum_opzegging','Einddatum_contract','Con
     'avg_contract_duration_per_property_type', 'avg_contract_duration_per_complex', 
     'avg_contract_duration_per_city', 'avg_contract_duration_per_region', 'rolling_mean_property_value', 
     'Aantal_slaapkamers', 'Aardgasloze_woning','Geen_deelname_energieproject','Contractnummer','VIBDRO_Huurobject_id','Gemeente',
-    'Woning_type','VERA_Type','Straat', 'Reden_opzegging' ]  #Also including data thats 100% correlated to target variable, such as contract_end_date
-#Also added categorical data that i used for feature engineering and i dont want to encode (because its too high cardinality)
-#Also removed all the ID's
-#Removed data thats too high cardinality because i need to encode everything before training trees
+    'Woning_type','VERA_Type','Straat', 'Reden_opzegging' ] 
 
+# Apply column drop to all datasets seperately
 train_data_temp_with_features = train_data_temp_with_features.drop(columns=columns_to_drop)
 train_data_rand_with_features = train_data_rand_with_features.drop(columns=columns_to_drop)
+validation_data_temp_with_features = validation_data_temp_with_features.drop(columns=columns_to_drop)
+validation_data_rand_with_features = validation_data_rand_with_features.drop(columns=columns_to_drop)
+test_data_temp_with_features = test_data_temp_with_features.drop(columns=columns_to_drop)
+test_data_rand_with_features = test_data_rand_with_features.drop(columns=columns_to_drop)
 
-
-# Prepare features and target variable
+# Extract features (X) and target variable (y)
 X_temp = train_data_temp_with_features.drop(columns=['Target_binary'])
 y_temp = train_data_temp_with_features['Target_binary']
 
 X_rand = train_data_rand_with_features.drop(columns=['Target_binary'])
 y_rand = train_data_rand_with_features['Target_binary']
 
-#Going to do one hot encoding:
-X_temp_encoded = pd.get_dummies(X_temp, drop_first=True)
-X_rand_encoded = pd.get_dummies(X_rand, drop_first=True)
+X_val_temp = validation_data_temp_with_features.drop(columns=['Target_binary'])
+y_val_temp = validation_data_temp_with_features['Target_binary']
 
+X_val_rand = validation_data_rand_with_features.drop(columns=['Target_binary'])
+y_val_rand = validation_data_rand_with_features['Target_binary']
 
-from imblearn.over_sampling import SMOTE
-import pandas as pd
+X_test_temp = test_data_temp_with_features.drop(columns=['Target_binary'])
+y_test_temp = test_data_temp_with_features['Target_binary']
 
-# Prepare features and target variable
-X_temp = train_data_temp_with_features.drop(columns=['Target_binary'])
-y_temp = train_data_temp_with_features['Target_binary']
+X_test_rand = test_data_rand_with_features.drop(columns=['Target_binary'])
+y_test_rand = test_data_rand_with_features['Target_binary']
 
-X_rand = train_data_rand_with_features.drop(columns=['Target_binary'])
-y_rand = train_data_rand_with_features['Target_binary']
+print(X_temp.shape)
+print(X_rand.shape)
+print(X_val_rand.shape)
+print(X_val_temp.shape)
+print(X_test_temp.shape)
+print(X_test_rand.shape)
 
 
 #Doing this for troubleshooting purposes, as it went wrong earlier 
-for col in X_temp.select_dtypes(include=['datetime64']):
-    X_temp[col] = X_temp[col].dt.year
+for df in [X_temp, X_rand, X_val_temp, X_val_rand, X_test_temp, X_test_rand]:
+    for col in df.select_dtypes(include=['datetime64']):
+        df[col] = df[col].dt.year
 
-for col in X_rand.select_dtypes(include=['datetime64']):
-    X_rand[col] = X_rand[col].dt.year
+# Going to do one hot encoding, i do it this way so all datasets have the same columns across, because earlier i did it wrong and when testing my model on the validation set it said columns where missing
 
-# Going to do one hot encoding:
-X_temp_encoded = pd.get_dummies(X_temp, drop_first=True)
-X_rand_encoded = pd.get_dummies(X_rand, drop_first=True)
+# Identify categorical columns 
+categorical_cols = X_temp.select_dtypes(include=['object']).columns
 
-# check if all categorical data is gone
-categorical_indices_temp = [i for i, col in enumerate(X_temp_encoded.columns) if X_temp_encoded[col].dtype == 'object']
-print("Indices of categorical features in X_temp:", categorical_indices_temp)
-categorical_indices_rand = [i for i, col in enumerate(X_rand_encoded.columns) if X_rand_encoded[col].dtype == 'object']
-print("Indices of categorical features in X_rand:", categorical_indices_rand)
+from sklearn.preprocessing import OneHotEncoder
+import pandas as pd
 
-# Check the number of rows in X_temp
-num_rows_temp = X_temp_encoded.shape[0]  # or len(X_temp)
-print(f"Number of rows in X_temp before SMOTE: {num_rows_temp}")
+#OneHotEncoder
+encoder = OneHotEncoder(drop='first', handle_unknown='ignore', sparse=False)
 
-# Check the number of rows in X_rand
-num_rows_rand = X_rand_encoded.shape[0]  # or len(X_rand)
-print(f"Number of rows in X_rand before SMOTE: {num_rows_rand}")
+#fitting it on temporal training data
+encoder.fit(X_temp[categorical_cols])
+
+#encoding 
+X_temp_encoded = encoder.transform(X_temp[categorical_cols])
+X_rand_encoded = encoder.transform(X_rand[categorical_cols])
+X_val_temp_encoded = encoder.transform(X_val_temp[categorical_cols])
+X_val_rand_encoded = encoder.transform(X_val_rand[categorical_cols])
+X_test_temp_encoded = encoder.transform(X_test_temp[categorical_cols])
+X_test_rand_encoded = encoder.transform(X_test_rand[categorical_cols])
+
+# turn back into dataframes
+encoded_feature_names = encoder.get_feature_names_out(categorical_cols)
+
+X_temp_encoded_df = pd.DataFrame(X_temp_encoded, columns=encoded_feature_names)
+X_rand_encoded_df = pd.DataFrame(X_rand_encoded, columns=encoded_feature_names)
+X_val_temp_encoded_df = pd.DataFrame(X_val_temp_encoded, columns=encoded_feature_names)
+X_val_rand_encoded_df = pd.DataFrame(X_val_rand_encoded, columns=encoded_feature_names)
+X_test_temp_encoded_df = pd.DataFrame(X_test_temp_encoded, columns=encoded_feature_names)
+X_test_rand_encoded_df = pd.DataFrame(X_test_rand_encoded, columns=encoded_feature_names)
+
+
+# Get non-categorical columns
+non_categorical_cols = [col for col in X_temp.columns if col not in categorical_cols]
+
+# Concatenate the non-categorical columns
+X_temp_encoded_df = pd.concat([X_temp_encoded_df, X_temp[non_categorical_cols].reset_index(drop=True)], axis=1)
+X_rand_encoded_df = pd.concat([X_rand_encoded_df, X_rand[non_categorical_cols].reset_index(drop=True)], axis=1)
+X_val_temp_encoded_df = pd.concat([X_val_temp_encoded_df, X_val_temp[non_categorical_cols].reset_index(drop=True)], axis=1)
+X_val_rand_encoded_df = pd.concat([X_val_rand_encoded_df, X_val_rand[non_categorical_cols].reset_index(drop=True)], axis=1)
+X_test_temp_encoded_df = pd.concat([X_test_temp_encoded_df, X_test_temp[non_categorical_cols].reset_index(drop=True)], axis=1)
+X_test_rand_encoded_df = pd.concat([X_test_rand_encoded_df, X_test_rand[non_categorical_cols].reset_index(drop=True)], axis=1)
+
+print("Shapes after encoding:")
+print("X_temp_encoded shape:", X_temp_encoded_df.shape)
+print("X_rand_encoded shape:", X_rand_encoded_df.shape)
+print("X_val_temp_encoded shape:", X_val_temp_encoded_df.shape)
+print("X_val_rand_encoded shape:", X_val_rand_encoded_df.shape)
+print("X_test_temp_encoded shape:", X_test_temp_encoded_df.shape)
+print("X_test_rand_encoded shape:", X_test_rand_encoded_df.shape)
+
 
 # Apply SMOTE to the temporal training set
 smote_temp = SMOTE(random_state=777)
-X_temp_balanced, y_temp_balanced = smote_temp.fit_resample(X_temp_encoded, y_temp)
+X_temp_balanced, y_temp_balanced = smote_temp.fit_resample(X_temp_encoded_df, y_temp)
 
 # Apply SMOTE to the random training set
-smote_rand = SMOTE(random_state=777)
-X_rand_balanced, y_rand_balanced = smote_rand.fit_resample(X_rand_encoded, y_rand)
+smote_rand = SMOTE(random_state=777) 
+X_rand_balanced, y_rand_balanced = smote_rand.fit_resample(X_rand_encoded_df, y_rand)
 
 # Check the class distribution after SMOTE
 print("Class distribution in Temporal Training Set after SMOTE:")
@@ -424,9 +483,18 @@ print("Class distribution in Random Training Set after SMOTE:")
 print(y_rand_balanced.value_counts())
 
 # Save the balanced temporal split for the next step
-X_temp_balanced.to_csv('X_temp_balanced.csv', index=False)
-y_temp_balanced.to_csv('y_temp_balanced.csv', index=False)
+# Save the training, validation, and test datasets for temporal split
+X_temp_balanced.to_csv('X_train_temp.csv', index=False)
+y_temp_balanced.to_csv('y_train_temp.csv', index=False)
+X_val_temp_encoded_df.to_csv('X_val_temp.csv', index=False)
+y_val_temp.to_csv('y_val_temp.csv', index=False)
+X_test_temp_encoded_df.to_csv('X_test_temp.csv', index=False)
+y_test_temp.to_csv('y_test_temp.csv', index=False)
 
-# Save the balanced random split for the next step
-X_rand_balanced.to_csv('X_rand_balanced.csv', index=False)
-y_rand_balanced.to_csv('y_rand_balanced.csv', index=False)
+# Save the training, validation, and test datasets for random split
+X_rand_balanced.to_csv('X_train_rand.csv', index=False)
+y_rand_balanced.to_csv('y_train_rand.csv', index=False)
+X_val_rand_encoded_df.to_csv('X_val_rand.csv', index=False)
+y_val_rand.to_csv('y_val_rand.csv', index=False)
+X_test_rand_encoded_df.to_csv('X_test_rand.csv', index=False)
+y_test_rand.to_csv('y_test_rand.csv', index=False)
