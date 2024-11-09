@@ -85,7 +85,7 @@ validation_data_rand, test_data_rand = train_test_split(temp_data_rand, test_siz
 train_size = train_data_rand.shape[0]
 
 # Sort the labeled data by 'Huis_leeftijd' in descending order (oldest houses first)
-labeled_data_sorted = labeled_data.sort_values(by='Huis_leeftijd', ascending=False)
+labeled_data_sorted = labeled_data.sort_values(by='Contract_starting_year', ascending=False)
 
 # Calculate sizes for a 60/20/20 split
 train_size = int(0.6 * labeled_data_sorted.shape[0])  
