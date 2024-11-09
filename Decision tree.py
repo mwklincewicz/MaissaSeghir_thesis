@@ -10,6 +10,9 @@ from sklearn.model_selection import GridSearchCV
 from sklearn.metrics import precision_score, recall_score, f1_score, roc_auc_score, confusion_matrix
 import seaborn as sns
 import matplotlib.pyplot as plt
+from sklearn.inspection import permutation_importance
+from sklearn.tree import plot_tree
+
 
 
 #Starting with training the decision tree...
@@ -39,8 +42,13 @@ random_cv_scores = cross_val_score(model, X_rand_balanced, y_rand_balanced, cv=k
 print("Random Set - 5-Fold Cross-Validation Scores:", random_cv_scores)
 print("Random Set - Mean Accuracy:", np.mean(random_cv_scores))
 
+#BEFORE DROPPING HOUSE AGE AND CONTRACT STARTING YEAR
 #For the random set the mean accuracy is around 79%
 #The accuracy between 5 folds is between 78% and 80% 
+
+#AFTER DROP:
+#MEAN ACCURACY = 67% 
+
 
 # Set up time series cross-validation for the temporal dataset 
 tscv = TimeSeriesSplit(n_splits=5) # 5 splits 
@@ -52,9 +60,13 @@ temporal_cv_scores = cross_val_score(model, X_temp_balanced, y_temp_balanced, cv
 print("Temporal Set - Time Series Cross-Validation Scores:", temporal_cv_scores)
 print("Temporal Set - Mean Accuracy:", np.mean(temporal_cv_scores))
 
+##BEFORE DROPPING HOUSE AGE AND CONTRACT STARTING YEAR
 #Mean accuracy is 77% 
 #Across 5 splits the accuracy ranges from 71% to 89%, best perfomance is highet than with the random split, but lowest is lower than the random split. 
 #So this predicts better in some time series than other time series. 
+
+#AFTER DROP
+#Mean accuracy = 57%
 
 #Lets so a grid search
 #I dont mind waiting longer time periods so choosing this over random search 
@@ -75,9 +87,12 @@ grid_search_rand.fit(X_rand_balanced, y_rand_balanced)
 print("Best Parameters (Random Set):", grid_search_rand.best_params_)
 print("Best Score (Random Set):", grid_search_rand.best_score_)
 
-#Output for random split=
+#Output for random split BEFORE REMOVING HOUSE AGE AND CONTRACT STARTING YEAR=
 #Best Parameters (Random Set): {'criterion': 'gini', 'max_depth': 5, 'min_samples_leaf': 4, 'min_samples_split': 2}
 #Best Score (Random Set): 0.7168859297979816
+
+#AFTER DROPPING FEATURES 
+
 
 #Now the temporal split
 # Set up GridSearchCV
@@ -90,8 +105,9 @@ grid_search_temp.fit(X_temp_balanced, y_temp_balanced)
 print("Best Parameters (Temporal Set):", grid_search_temp.best_params_)
 print("Best Score (Temporal Set):", grid_search_temp.best_score_)
 
-#Best Parameters (Temporal Set): {'criterion': 'gini', 'max_depth': 5, 'min_samples_leaf': 1, 'min_samples_split': 10}
+#Best Parameters (Temporal Set) BEFORE REMOVING HOUSE AGE AND CONTRACT STARTING YEAR=: {'criterion': 'gini', 'max_depth': 5, 'min_samples_leaf': 1, 'min_samples_split': 10}
 #Best Score (Temporal Set): 0.605490187027098
+
 
 #So the temporal split has worse performance after hyperparameter tuning based on training set
 #Lets try evaluating performance on the validation sets: 
@@ -104,7 +120,8 @@ val_rand_accuracy = accuracy_score(y_val_rand, val_rand_predictions)
 
 print("Validation Accuracy (Random Set):", val_rand_accuracy)
 
-#Validation Accuracy (Random Set): 0.7509590792838875
+#Validation Accuracy (Random Set): 0.7509590792838875 #BEFORE DROPPING HOUSE AGE AND CONTRACT_STARTING_YEAR
+
 
 # Temporal validation set evaluation
 best_model_temp = grid_search_temp.best_estimator_
@@ -114,7 +131,7 @@ val_temp_accuracy = accuracy_score(y_val_temp, val_temp_predictions)
 
 print("Validation Accuracy (Temporal Set):", val_temp_accuracy)
 
-#Validation Accuracy (Temporal Set): 0.9402173913043478
+#Validation Accuracy (Temporal Set): 0.9402173913043478 #BEFORE DROPPING HOUSE AGE AND CONTRACT_STARTING_YEAR
 
 #METRICS
 #METRICS FOR RANDOM VALIDATION SET
@@ -244,6 +261,106 @@ Confusion Matrix:
  [ 100 5870]]
 
  And after dropping temporal features:
+Random Set - 5-Fold Cross-Validation Scores: [0.67083245 0.68227071 0.68326271 0.68305085 0.67584746]
+Random Set - Mean Accuracy: 0.6790528346120291
+Temporal Set - Time Series Cross-Validation Scores: [0.54226692 0.55150856 0.56020658 0.56645828 0.60478391]
+Temporal Set - Mean Accuracy: 0.5650448491437892
 
+Fitting 5 folds for each of 90 candidates, totalling 450 fits
+Best Parameters (Random Set): {'criterion': 'entropy', 'max_depth': 5, 'min_samples_leaf': 1, 'min_samples_split': 2}
+Best Score (Random Set): 0.5701632805459919
+Fitting 5 folds for each of 90 candidates, totalling 450 fits
+
+Best Parameters (Temporal Set): {'criterion': 'gini', 'max_depth': None, 'min_samples_leaf': 1, 'min_samples_split': 2}
+Best Score (Temporal Set): 0.44572909998851085
+Validation Accuracy (Random Set): 0.6632033248081841
+Validation Accuracy (Temporal Set): 0.48065856777493604
+
+Validation Metrics (Random Set):
+Accuracy: 0.6632033248081841
+Precision: 0.7339889056984367
+Recall: 0.7345445369669442
+F1-Score: 0.7342666162189432
+AUC-ROC: 0.691642734544427
+Confusion Matrix:
+[[1238 1055]
+ [1052 2911]]
+
+Validation Metrics (Temporal Set):
+Accuracy: 0.48065856777493604
+Precision: 0.9597837107130788
+Recall: 0.47571189279731996
+F1-Score: 0.6361294657856423
+AUC-ROC: 0.5223905073151305
+Confusion Matrix:
+[[ 167  119]
+ [3130 2840]]
+
+ Based on this im keeping the features in.
 
 """
+
+#Now lets check permutation importance:
+
+
+# Calculate permutation importance for the random set and temporal set 
+perm_importance_rand = permutation_importance(best_model_rand, x_val_rand, y_val_rand, n_repeats=10, random_state=777)
+perm_importance_temp = permutation_importance(best_model_temp, x_val_temp, y_val_temp, n_repeats=10, random_state=777)
+
+# Get the feature importances and corresponding feature names for each split
+perm_importances_rand = perm_importance_rand.importances_mean
+perm_importances_temp = perm_importance_temp.importances_mean
+
+# I only want to include features that have some predictive power to prevent clutter in the plot
+threshold = 0.0
+
+# Create DataFrames and filter
+perm_importance_df_rand = pd.DataFrame({
+    'Feature': feature_names_rand,
+    'Permutation Importance': perm_importances_rand
+}).sort_values(by='Permutation Importance', ascending=False)
+
+perm_importance_df_temp = pd.DataFrame({
+    'Feature': feature_names_temp,
+    'Permutation Importance': perm_importances_temp
+}).sort_values(by='Permutation Importance', ascending=False)
+
+# Filter out features that have zero permutation importance
+filtered_df_rand = perm_importance_df_rand[perm_importance_df_rand['Permutation Importance'] > threshold]
+filtered_df_temp = perm_importance_df_temp[perm_importance_df_temp['Permutation Importance'] > threshold]
+
+# Plot permutation importance for features that offer some predictive power
+plt.figure(figsize=(10, 6))
+sns.barplot(x='Permutation Importance', y='Feature', data=filtered_df_rand)
+plt.title('Filtered Permutation Feature Importance (Random Set)')
+plt.show()
+
+plt.figure(figsize=(10, 6))
+sns.barplot(x='Permutation Importance', y='Feature', data=filtered_df_temp)
+plt.title('Filtered Permutation Feature Importance (Temporal Set)')
+plt.show()
+
+#Lets visualise the trees
+
+
+# Visualize the decision tree for the random set
+plt.figure(figsize=(40, 20))  
+plot_tree(best_model_rand, 
+          filled=True,  
+          feature_names=X_rand_balanced.columns,  
+          class_names=['<=3 years', '>3 years'],  
+          rounded=True,  
+          fontsize=12) 
+plt.title("Decision Tree Visualization (Random Set)")
+plt.show()
+
+# Visualize the decision tree for the temporal set
+plt.figure(figsize=(40, 20))
+plot_tree(best_model_temp, 
+          filled=True, 
+          feature_names=X_temp_balanced.columns, 
+          class_names=['<=3 years', '>3 years'], 
+          rounded=True, 
+          fontsize=12)
+plt.title("Decision Tree Visualization (Temporal Set)")
+plt.show()

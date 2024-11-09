@@ -85,7 +85,7 @@ validation_data_rand, test_data_rand = train_test_split(temp_data_rand, test_siz
 train_size = train_data_rand.shape[0]
 
 # Sort the labeled data by 'Huis_leeftijd' in descending order (oldest houses first)
-labeled_data_sorted = labeled_data.sort_values(by='Contract_starting_year', ascending=False)
+labeled_data_sorted = labeled_data.sort_values(by='Huis_leeftijd', ascending=False)
 
 # Calculate sizes for a 60/20/20 split
 train_size = int(0.6 * labeled_data_sorted.shape[0])  
@@ -364,7 +364,7 @@ interpret_chi2_results(chi2_results_rand_df)
 #Going to drop low correlation columns 
 
 columns_to_drop = ['Target','Ontvangstdatum_opzegging','Einddatum_contract','Contract_duur','Land','Huurobject', 'Energie_index', 
-    'Marktwaarde', 'Totaal kamers', 'Totale punten (afgerond)', 
+    'Marktwaarde', 'Totaal kamers', 'Totale punten (afgerond)',
     'Totale punten (onafgerond)', 'WOZ waarde', 'WOZ waarde per m2', 
     'WOZ waarde per m2 (WWS)', 'Woonkamer','Energielabel', 'Markthuur', 'Maximaal_redelijke_huur', 'Streefhuur', 
     'Year of demolition flag', 'EP2_waarde flag', 'Ontvangstdatum_opzegging flag', 
