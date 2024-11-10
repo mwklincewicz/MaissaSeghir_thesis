@@ -239,66 +239,6 @@ plt.show()
 
 #Probably should to feature engineering back to drop temporal features since the model is overfitting and it amplifies temporal bias
 
-"""Results before dropping the temporal features such as house age and contract starting year:
-Validation Metrics (Random Set):
-Accuracy: 0.7509590792838875
-Precision: 0.9330212459488657
-Recall: 0.6537976280595509
-F1-Score: 0.7688427299703265
-AUC-ROC: 0.8726794039809362
-Confusion Matrix:
-[[2107  186]
- [1372 2591]]
-
- Validation Metrics (Temporal Set):
-Accuracy: 0.9402173913043478
-Precision: 0.9554036458333334
-Recall: 0.983249581239531
-F1-Score: 0.9691266303450552
-AUC-ROC: 0.5324987407901981
-Confusion Matrix:
-[[  12  274]
- [ 100 5870]]
-
- And after dropping temporal features:
-Random Set - 5-Fold Cross-Validation Scores: [0.67083245 0.68227071 0.68326271 0.68305085 0.67584746]
-Random Set - Mean Accuracy: 0.6790528346120291
-Temporal Set - Time Series Cross-Validation Scores: [0.54226692 0.55150856 0.56020658 0.56645828 0.60478391]
-Temporal Set - Mean Accuracy: 0.5650448491437892
-
-Fitting 5 folds for each of 90 candidates, totalling 450 fits
-Best Parameters (Random Set): {'criterion': 'entropy', 'max_depth': 5, 'min_samples_leaf': 1, 'min_samples_split': 2}
-Best Score (Random Set): 0.5701632805459919
-Fitting 5 folds for each of 90 candidates, totalling 450 fits
-
-Best Parameters (Temporal Set): {'criterion': 'gini', 'max_depth': None, 'min_samples_leaf': 1, 'min_samples_split': 2}
-Best Score (Temporal Set): 0.44572909998851085
-Validation Accuracy (Random Set): 0.6632033248081841
-Validation Accuracy (Temporal Set): 0.48065856777493604
-
-Validation Metrics (Random Set):
-Accuracy: 0.6632033248081841
-Precision: 0.7339889056984367
-Recall: 0.7345445369669442
-F1-Score: 0.7342666162189432
-AUC-ROC: 0.691642734544427
-Confusion Matrix:
-[[1238 1055]
- [1052 2911]]
-
-Validation Metrics (Temporal Set):
-Accuracy: 0.48065856777493604
-Precision: 0.9597837107130788
-Recall: 0.47571189279731996
-F1-Score: 0.6361294657856423
-AUC-ROC: 0.5223905073151305
-Confusion Matrix:
-[[ 167  119]
- [3130 2840]]
-
- Based on this im keeping the features in.
-
-"""
 
 #Now lets check permutation importance:
 
