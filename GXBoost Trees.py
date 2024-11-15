@@ -1,4 +1,4 @@
-# Import necessary libraries
+# Importing necessary libraries
 import pandas as pd
 import numpy as np
 from xgboost import XGBClassifier
@@ -12,12 +12,17 @@ X_temp_balanced = pd.read_csv('X_train_temp.csv')
 y_temp_balanced = pd.read_csv('y_train_temp.csv')
 x_val_temp = pd.read_csv('x_val_temp.csv')
 y_val_temp = pd.read_csv('y_val_temp.csv')
+X_test_temp = pd.read_csv('X_test_temp.csv')
+y_test_temp = pd.read_csv('y_test_temp.csv')
 
 # Load the balanced random training and validation datasets
 X_rand_balanced = pd.read_csv('X_train_rand.csv')
 y_rand_balanced = pd.read_csv('y_train_rand.csv')
 x_val_rand = pd.read_csv('x_val_rand.csv')
 y_val_rand = pd.read_csv('y_val_rand.csv')
+X_test_rand = pd.read_csv('X_test_rand.csv')
+y_test_rand = pd.read_csv('y_test_rand.csv')
+
 
 # Initialize the XGBoost classifier with randomstate 777
 xgb_model = XGBClassifier(random_state=777, eval_metric='logloss') 
@@ -40,13 +45,13 @@ print("Temporal Set - Mean F1 Score:", np.mean(temporal_cv_scores))
 
 # Hyperparameter distribution for RandomizedSearchCV
 param_dist = {
-    'n_estimators': [50, 100, 150, 200, 250],
-    'max_depth': [3, 5, 7, 10, 12],
+    'n_estimators': [150, 170, 200, 250, 270],
+    'max_depth': [ 7, 10, 12, 15, 20],
     'learning_rate': [0.01, 0.05, 0.1, 0.15, 0.2],
-    'subsample': [0.5, 0.6, 0.7, 0.8, 1.0],
-    'colsample_bytree': [0.5, 0.6, 0.7, 0.8, 1.0],
-    'min_child_weight': [1, 3, 5],
-    'gamma': [0, 0.1, 0.2, 0.3, 0.4]
+    'subsample': [0.4, 0.5, 0.6, 0.7],
+    'colsample_bytree': [0.4, 0.5, 0.6, 0.7],
+    'min_child_weight': [1, 3, 5, 7],
+    'gamma': [0, 0.1, 0.4, 0.5, 0.6]
 }
 
 # RandomizedSearchCV for Random Set
@@ -124,6 +129,82 @@ conf_matrix_temp = confusion_matrix(y_val_temp, val_temp_predictions)
 print("Confusion Matrix (Temporal Set):")
 print(conf_matrix_temp)
 
+# Import necessary libraries for permutation importance
+from sklearn.inspection import permutation_importance
+
+#PERMUTATION IMPORTANCE
+
+# Permutation Importance for the Random Set
+perm_importance_rand_xgb = permutation_importance(best_model_rand, x_val_rand, y_val_rand, n_repeats=10, random_state=777)
+importance_rand_df_xgb = pd.DataFrame({
+    'Feature': X_rand_balanced.columns,
+    'Importance': perm_importance_rand_xgb.importances_mean
+})
+
+#Using the same cutoff as with the other models to avoid clutter in the plot
+importance_rand_df_xgb = importance_rand_df_xgb[(importance_rand_df_xgb['Importance'] > 0.005) | (importance_rand_df_xgb['Importance'] < -0.005)]  # Filter for better visualization
+importance_rand_df_xgb.sort_values(by='Importance', ascending=False, inplace=True)
+
+# Plot Permutation Importance for the Random Set
+plt.figure(figsize=(10, 6))
+sns.barplot(x='Importance', y='Feature', data=importance_rand_df_xgb)
+plt.title('Permutation Importance (Random Set) - XGBoost')
+plt.show()
+
+# Permutation Importance for the Temporal Set
+perm_importance_temp_xgb = permutation_importance(best_model_temp, x_val_temp, y_val_temp, n_repeats=10, random_state=777)
+importance_temp_df_xgb = pd.DataFrame({
+    'Feature': X_temp_balanced.columns,
+    'Importance': perm_importance_temp_xgb.importances_mean
+})
+
+#Using the same cutoff as with the other models to avoid clutter in the plot
+importance_temp_df_xgb = importance_temp_df_xgb[(importance_temp_df_xgb['Importance'] > 0.005) | (importance_temp_df_xgb['Importance'] < -0.005)]
+importance_temp_df_xgb.sort_values(by='Importance', ascending=False, inplace=True)
+
+# Plot Permutation Importance for the Temporal Set
+plt.figure(figsize=(10, 6))
+sns.barplot(x='Importance', y='Feature', data=importance_temp_df_xgb)
+plt.title('Permutation Importance (Temporal Set) - XGBoost')
+plt.show()
+
+
+# TEST SET EVALUATION 
+
+# Test Set Evaluation for the Random Set
+test_rand_predictions_xgb = best_model_rand.predict(X_test_rand)
+test_rand_f1_xgb = f1_score(y_test_rand, test_rand_predictions_xgb)
+test_rand_accuracy_xgb = accuracy_score(y_test_rand, test_rand_predictions_xgb)
+test_rand_precision_xgb = precision_score(y_test_rand, test_rand_predictions_xgb)
+test_rand_recall_xgb = recall_score(y_test_rand, test_rand_predictions_xgb)
+test_rand_roc_auc_xgb = roc_auc_score(y_test_rand, best_model_rand.predict_proba(X_test_rand)[:, 1])
+test_rand_conf_matrix_xgb = confusion_matrix(y_test_rand, test_rand_predictions_xgb)
+
+print("\nTest Metrics (Random Set - XGBoost):")
+print(f"Accuracy: {test_rand_accuracy_xgb}")
+print(f"Precision: {test_rand_precision_xgb}")
+print(f"Recall: {test_rand_recall_xgb}")
+print(f"F1-Score: {test_rand_f1_xgb}")
+print(f"AUC-ROC: {test_rand_roc_auc_xgb}")
+print(f"Confusion Matrix:\n{test_rand_conf_matrix_xgb}")
+
+# Test Set Evaluation for the Temporal Set
+test_temp_predictions_xgb = best_model_temp.predict(X_test_temp)
+test_temp_f1_xgb = f1_score(y_test_temp, test_temp_predictions_xgb)
+test_temp_accuracy_xgb = accuracy_score(y_test_temp, test_temp_predictions_xgb)
+test_temp_precision_xgb = precision_score(y_test_temp, test_temp_predictions_xgb)
+test_temp_recall_xgb = recall_score(y_test_temp, test_temp_predictions_xgb)
+test_temp_roc_auc_xgb = roc_auc_score(y_test_temp, best_model_temp.predict_proba(X_test_temp)[:, 1])
+test_temp_conf_matrix_xgb = confusion_matrix(y_test_temp, test_temp_predictions_xgb)
+
+print("\nTest Metrics (Temporal Set - XGBoost):")
+print(f"Accuracy: {test_temp_accuracy_xgb}")
+print(f"Precision: {test_temp_precision_xgb}")
+print(f"Recall: {test_temp_recall_xgb}")
+print(f"F1-Score: {test_temp_f1_xgb}")
+print(f"AUC-ROC: {test_temp_roc_auc_xgb}")
+print(f"Confusion Matrix:\n{test_temp_conf_matrix_xgb}")
+
 """Random Set - 5-Fold Cross-Validation F1 Scores: [0.81913303 0.82719547 0.82200087 0.81839878 0.81979257]
 Random Set - Mean F1 Score: 0.8213041439894152
 Temporal Set - Time Series Cross-Validation F1 Scores: [0.85541126 0.86601775 0.85850144 0.32064985 0.        ]
@@ -131,30 +212,47 @@ Temporal Set - Mean F1 Score: 0.5801160592964267
 
 Fitting RandomizedSearchCV for Random Set...
 Fitting 5 folds for each of 50 candidates, totalling 250 fits
-Best Parameters (Random Set): {'subsample': 0.6, 'n_estimators': 150, 'min_child_weight': 5, 'max_depth': 7, 'learning_rate': 0.01, 'gamma': 0.4, 'colsample_bytree': 0.5}
-Best F1 Score (Random Set): 0.7109982122532565
+Best Parameters (Random Set): {'subsample': 0.4, 'n_estimators': 270, 'min_child_weight': 7, 'max_depth': 10, 'learning_rate': 0.01, 'gamma': 0.4, 'colsample_bytree': 0.4}
+Best F1 Score (Random Set): 0.7166564492146653
 
 Fitting RandomizedSearchCV for Temporal Set...
 Fitting 5 folds for each of 50 candidates, totalling 250 fits
-Best Parameters (Temporal Set): {'subsample': 0.5, 'n_estimators': 250, 'min_child_weight': 1, 'max_depth': 12, 'learning_rate': 0.1, 'gamma': 0.1, 'colsample_bytree': 0.6}
-Best F1 Score (Temporal Set): 0.8002906258713021
+Best Parameters (Temporal Set): {'subsample': 0.7, 'n_estimators': 200, 'min_child_weight': 1, 'max_depth': 20, 'learning_rate': 0.2, 'gamma': 0.4, 'colsample_bytree': 0.5}
+Best F1 Score (Temporal Set): 0.8038081133626335
 
 Validation Metrics (Random Set):
-Accuracy: 0.7771739130434783
-Precision: 0.8817236255572065
-Recall: 0.7486752460257381
-F1-Score: 0.8097707423580787
-AUC-ROC: 0.7875517529736191
+Accuracy: 0.782608695652174
+Precision: 0.8555039606664846
+Recall: 0.7903103709311128
+F1-Score: 0.8216159496327387
+AUC-ROC: 0.7798041169963021
 Confusion Matrix (Random Set):
-[[1895  398]
- [ 996 2967]]
+[[1764  529]
+ [ 831 3132]]
 
 Validation Metrics (Temporal Set):
-Accuracy: 0.6360294117647058
-Precision: 0.5836388634280477
-Recall: 0.8470236115729963
-F1-Score: 0.6910866910866911
-AUC-ROC: 0.6438873059403917
+Accuracy: 0.6150895140664961
+Precision: 0.5678062033054109
+Recall: 0.8340538742933156
+F1-Score: 0.6756465517241379
+AUC-ROC: 0.6232442347766978
 Confusion Matrix (Temporal Set):
-[[1432 1817]
- [ 460 2547]]"""
+[[1340 1909]
+ [ 499 2508]]
+ 
+ Test Metrics (Random Set - XGBoost):
+Accuracy: 0.797027329391082
+Precision: 0.862912087912088
+Recall: 0.8029141104294478
+F1-Score: 0.8318326271186441
+AUC-ROC: 0.8955962954726804
+
+Test Metrics (Temporal Set - XGBoost):
+Accuracy: 0.6205849448617549
+Precision: 0.574635241301908
+Recall: 0.8423823626192827
+F1-Score: 0.6832132372564719
+AUC-ROC: 0.7513716444866005
+
+
+ """

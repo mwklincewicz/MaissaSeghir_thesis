@@ -1,4 +1,4 @@
-# Import libraries
+# Importing libraries
 import pandas as pd
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import cross_val_score, KFold, TimeSeriesSplit, RandomizedSearchCV
@@ -10,15 +10,21 @@ from sklearn.inspection import permutation_importance
 
 # Load the balanced temporal training and validation datasets
 X_temp_balanced = pd.read_csv('X_train_temp.csv')
-y_temp_balanced = pd.read_csv('y_train_temp.csv').values.ravel()  # Using .ravel() to avoid warnings
+y_temp_balanced = pd.read_csv('y_train_temp.csv').values.ravel()
 x_val_temp = pd.read_csv('x_val_temp.csv')
 y_val_temp = pd.read_csv('y_val_temp.csv').values.ravel()
+X_test_temp = pd.read_csv('X_test_temp.csv')
+y_test_temp = pd.read_csv('y_test_temp.csv').values.ravel()
 
 # Load the balanced random training and validation datasets
 X_rand_balanced = pd.read_csv('X_train_rand.csv')
-y_rand_balanced = pd.read_csv('y_train_rand.csv').values.ravel() 
+y_rand_balanced = pd.read_csv('y_train_rand.csv').values.ravel()
 x_val_rand = pd.read_csv('x_val_rand.csv')
 y_val_rand = pd.read_csv('y_val_rand.csv').values.ravel()
+X_test_rand = pd.read_csv('X_test_rand.csv')
+y_test_rand = pd.read_csv('y_test_rand.csv').values.ravel()
+
+
 
 # Initialize the random forest classifier with random_state for reproducibility
 model_rf = RandomForestClassifier(random_state=777, n_jobs=-1)  # Using all cores available
@@ -57,7 +63,7 @@ random_search_rand_rf = RandomizedSearchCV(
     scoring='f1',
     cv=5,
     verbose=1,
-    n_jobs=-1,  # all cores to reduce runtime
+    n_jobs=-1,
     random_state=777
 )
 random_search_rand_rf.fit(X_rand_balanced, y_rand_balanced)
@@ -79,7 +85,7 @@ random_search_temp_rf.fit(X_temp_balanced, y_temp_balanced)
 print("Best Parameters (Temporal Set):", random_search_temp_rf.best_params_)
 print("Best F1 Score (Temporal Set):", random_search_temp_rf.best_score_)
 
-# Evaluation on Random Validation Set
+# Validation Metrics for Random Set
 best_model_rand_rf = random_search_rand_rf.best_estimator_
 val_rand_predictions_rf = best_model_rand_rf.predict(x_val_rand)
 val_rand_accuracy_rf = accuracy_score(y_val_rand, val_rand_predictions_rf)
@@ -89,7 +95,7 @@ val_rand_f1_rf = f1_score(y_val_rand, val_rand_predictions_rf)
 val_rand_roc_auc_rf = roc_auc_score(y_val_rand, best_model_rand_rf.predict_proba(x_val_rand)[:, 1])
 val_rand_conf_matrix_rf = confusion_matrix(y_val_rand, val_rand_predictions_rf)
 
-print("Validation Metrics (Random Set):")
+print("\nValidation Metrics (Random Set):")
 print(f"Accuracy: {val_rand_accuracy_rf}")
 print(f"Precision: {val_rand_precision_rf}")
 print(f"Recall: {val_rand_recall_rf}")
@@ -97,7 +103,7 @@ print(f"F1-Score: {val_rand_f1_rf}")
 print(f"AUC-ROC: {val_rand_roc_auc_rf}")
 print(f"Confusion Matrix:\n{val_rand_conf_matrix_rf}")
 
-# Evaluation on Temporal Validation Set
+# Validation Metrics for Temporal Set
 best_model_temp_rf = random_search_temp_rf.best_estimator_
 val_temp_predictions_rf = best_model_temp_rf.predict(x_val_temp)
 val_temp_accuracy_rf = accuracy_score(y_val_temp, val_temp_predictions_rf)
@@ -115,34 +121,74 @@ print(f"F1-Score: {val_temp_f1_rf}")
 print(f"AUC-ROC: {val_temp_roc_auc_rf}")
 print(f"Confusion Matrix:\n{val_temp_conf_matrix_rf}")
 
-# Feature Importance Analysis
-feature_importances_rand_rf = best_model_rand_rf.feature_importances_
-feature_importances_temp_rf = best_model_temp_rf.feature_importances_
-
-# Creating DataFrames for feature importances
-importance_df_rand_rf = pd.DataFrame({
+#permutation importance
+# Permutation Importance for Random Set
+perm_importance_rand_rf = permutation_importance(best_model_rand_rf, x_val_rand, y_val_rand, n_repeats=10, random_state=777)
+importance_rand_df_rf = pd.DataFrame({
     'Feature': X_rand_balanced.columns,
-    'Importance': feature_importances_rand_rf
-}).sort_values(by='Importance', ascending=False)
+    'Importance': perm_importance_rand_rf.importances_mean
+})
+importance_rand_df_rf = importance_rand_df_rf[(importance_rand_df_rf['Importance'] > 0.005) | (importance_rand_df_rf['Importance'] < -0.005)] #cutt off to avoid clutter in the plot
+importance_rand_df_rf.sort_values(by='Importance', ascending=False, inplace=True)
 
-importance_df_temp_rf = pd.DataFrame({
+# Plot Permutation Importance for Random Set
+plt.figure(figsize=(10, 6))
+sns.barplot(x='Importance', y='Feature', data=importance_rand_df_rf)
+plt.title('Permutation Importance (Random Set)')
+plt.show()
+
+# Permutation Importance for Temporal Set
+perm_importance_temp_rf = permutation_importance(best_model_temp_rf, x_val_temp, y_val_temp, n_repeats=10, random_state=777)
+importance_temp_df_rf = pd.DataFrame({
     'Feature': X_temp_balanced.columns,
-    'Importance': feature_importances_temp_rf
-}).sort_values(by='Importance', ascending=False)
+    'Importance': perm_importance_temp_rf.importances_mean
+})
+importance_temp_df_rf = importance_temp_df_rf[(importance_temp_df_rf['Importance'] > 0.005) | (importance_temp_df_rf['Importance'] < -0.005)]
+importance_temp_df_rf.sort_values(by='Importance', ascending=False, inplace=True)
 
-# Plot Feature Importance for Random Set
+# Plot Permutation Importance for Temporal Set
 plt.figure(figsize=(10, 6))
-sns.barplot(x='Importance', y='Feature', data=importance_df_rand_rf.reset_index(drop=True))
-plt.title('Feature Importance (Random Set)')
-plt.tight_layout()
+sns.barplot(x='Importance', y='Feature', data=importance_temp_df_rf)
+plt.title('Permutation Importance (Temporal Set)')
 plt.show()
 
-# Plot Feature Importance for Temporal Set
-plt.figure(figsize=(10, 6))
-sns.barplot(x='Importance', y='Feature', data=importance_df_temp_rf.reset_index(drop=True))
-plt.title('Feature Importance (Temporal Set)')
-plt.tight_layout()
-plt.show()
+
+# final Test Set Evaluation for Random Set
+best_model_rand_rf = random_search_rand_rf.best_estimator_
+test_rand_predictions_rf = best_model_rand_rf.predict(X_test_rand)
+test_rand_f1_rf = f1_score(y_test_rand, test_rand_predictions_rf)
+test_rand_accuracy_rf = accuracy_score(y_test_rand, test_rand_predictions_rf)
+test_rand_precision_rf = precision_score(y_test_rand, test_rand_predictions_rf)
+test_rand_recall_rf = recall_score(y_test_rand, test_rand_predictions_rf)
+test_rand_roc_auc_rf = roc_auc_score(y_test_rand, best_model_rand_rf.predict_proba(X_test_rand)[:, 1])
+test_rand_conf_matrix_rf = confusion_matrix(y_test_rand, test_rand_predictions_rf)
+
+
+print("\nTest Metrics (Random Set):")
+print(f"Accuracy: {test_rand_accuracy_rf}")
+print(f"Precision: {test_rand_precision_rf}")
+print(f"Recall: {test_rand_recall_rf}")
+print(f"F1-Score: {test_rand_f1_rf}")
+print(f"AUC-ROC: {test_rand_roc_auc_rf}")
+print(f"Confusion Matrix:\n{test_rand_conf_matrix_rf}")
+
+# Test Set Evaluation for Temporal Set
+best_model_temp_rf = random_search_temp_rf.best_estimator_
+test_temp_predictions_rf = best_model_temp_rf.predict(X_test_temp)
+test_temp_f1_rf = f1_score(y_test_temp, test_temp_predictions_rf)
+test_temp_accuracy_rf = accuracy_score(y_test_temp, test_temp_predictions_rf)
+test_temp_precision_rf = precision_score(y_test_temp, test_temp_predictions_rf)
+test_temp_recall_rf = recall_score(y_test_temp, test_temp_predictions_rf)
+test_temp_roc_auc_rf = roc_auc_score(y_test_temp, best_model_temp_rf.predict_proba(X_test_temp)[:, 1])
+test_temp_conf_matrix_rf = confusion_matrix(y_test_temp, test_temp_predictions_rf)
+
+print("\nTest Metrics (Temporal Set):")
+print(f"Accuracy: {test_temp_accuracy_rf}")
+print(f"Precision: {test_temp_precision_rf}")
+print(f"Recall: {test_temp_recall_rf}")
+print(f"F1-Score: {test_temp_f1_rf}")
+print(f"AUC-ROC: {test_temp_roc_auc_rf}")
+print(f"Confusion Matrix:\n{test_temp_conf_matrix_rf}")
 
 
 """
@@ -183,5 +229,18 @@ Confusion Matrix:
 [[1675 1574]
  [ 632 2375]]
  
+Test Metrics (Random Set):
+Accuracy: 0.7906344893719035
+Precision: 0.8388020833333333
+Recall: 0.8233640081799591
+F1-Score: 0.8310113519091846
+AUC-ROC: 0.8864579381793923
+
+Test Metrics (Temporal Set):
+Accuracy: 0.6469554099408662
+Precision: 0.6015166340508806
+Recall: 0.8091477459690688
+F1-Score: 0.6900519152518592
+AUC-ROC: 0.7711806286250569
 #Training on f1 results in more balanced scores which capture long term contracts better
 """
