@@ -235,6 +235,8 @@ Precision: 0.8388020833333333
 Recall: 0.8233640081799591
 F1-Score: 0.8310113519091846
 AUC-ROC: 0.8864579381793923
+[[1726  619]
+ [ 691 3221]]
 
 Test Metrics (Temporal Set):
 Accuracy: 0.6469554099408662
@@ -242,5 +244,7 @@ Precision: 0.6015166340508806
 Recall: 0.8091477459690688
 F1-Score: 0.6900519152518592
 AUC-ROC: 0.7711806286250569
+[[1589 1629]
+ [ 580 2459]]
 #Training on f1 results in more balanced scores which capture long term contracts better
 """
