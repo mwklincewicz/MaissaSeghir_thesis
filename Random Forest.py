@@ -128,7 +128,7 @@ importance_rand_df_rf = pd.DataFrame({
     'Feature': X_rand_balanced.columns,
     'Importance': perm_importance_rand_rf.importances_mean
 })
-importance_rand_df_rf = importance_rand_df_rf[(importance_rand_df_rf['Importance'] > 0.005) | (importance_rand_df_rf['Importance'] < -0.005)] #cutt off to avoid clutter in the plot
+importance_rand_df_rf = importance_rand_df_rf[(importance_rand_df_rf['Importance'] > 0.001) | (importance_rand_df_rf['Importance'] < -0.001)] #cutt off to avoid clutter in the plot
 importance_rand_df_rf.sort_values(by='Importance', ascending=False, inplace=True)
 
 # Plot Permutation Importance for Random Set
@@ -143,7 +143,7 @@ importance_temp_df_rf = pd.DataFrame({
     'Feature': X_temp_balanced.columns,
     'Importance': perm_importance_temp_rf.importances_mean
 })
-importance_temp_df_rf = importance_temp_df_rf[(importance_temp_df_rf['Importance'] > 0.005) | (importance_temp_df_rf['Importance'] < -0.005)]
+importance_temp_df_rf = importance_temp_df_rf[(importance_temp_df_rf['Importance'] > 0.001) | (importance_temp_df_rf['Importance'] < -0.001)]
 importance_temp_df_rf.sort_values(by='Importance', ascending=False, inplace=True)
 
 # Plot Permutation Importance for Temporal Set

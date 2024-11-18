@@ -142,7 +142,7 @@ importance_rand_df_xgb = pd.DataFrame({
 })
 
 #Using the same cutoff as with the other models to avoid clutter in the plot
-importance_rand_df_xgb = importance_rand_df_xgb[(importance_rand_df_xgb['Importance'] > 0.005) | (importance_rand_df_xgb['Importance'] < -0.005)]  # Filter for better visualization
+importance_rand_df_xgb = importance_rand_df_xgb[(importance_rand_df_xgb['Importance'] > 0.001) | (importance_rand_df_xgb['Importance'] < -0.001)]  # Filter for better visualization
 importance_rand_df_xgb.sort_values(by='Importance', ascending=False, inplace=True)
 
 # Plot Permutation Importance for the Random Set
@@ -159,7 +159,7 @@ importance_temp_df_xgb = pd.DataFrame({
 })
 
 #Using the same cutoff as with the other models to avoid clutter in the plot
-importance_temp_df_xgb = importance_temp_df_xgb[(importance_temp_df_xgb['Importance'] > 0.005) | (importance_temp_df_xgb['Importance'] < -0.005)]
+importance_temp_df_xgb = importance_temp_df_xgb[(importance_temp_df_xgb['Importance'] > 0.001) | (importance_temp_df_xgb['Importance'] < -0.001)]
 importance_temp_df_xgb.sort_values(by='Importance', ascending=False, inplace=True)
 
 # Plot Permutation Importance for the Temporal Set

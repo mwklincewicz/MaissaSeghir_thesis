@@ -117,8 +117,8 @@ rand_importance_df = pd.DataFrame({
     'Importance': perm_importance_rand.importances_mean
 })
 
-# I dont want a cluttered plot... So using a cutoff of 0.005 and -0.005
-rand_importance_df = rand_importance_df[(rand_importance_df['Importance'] > 0.005) | (rand_importance_df['Importance'] < -0.005)]
+# I dont want a cluttered plot... So using a cutoff of 0.001 and -0.001
+rand_importance_df = rand_importance_df[(rand_importance_df['Importance'] > 0.001) | (rand_importance_df['Importance'] < -0.001)]
 rand_importance_df.sort_values(by='Importance', ascending=False, inplace=True)
 
 # Plotting Permutation Importance for Random Set
@@ -136,8 +136,8 @@ temp_importance_df = pd.DataFrame({
     'Importance': perm_importance_temp.importances_mean
 })
 
-# I dont want a cluttered plot... So using a cutoff of 0.005 and -0.005
-temp_importance_df = temp_importance_df[(temp_importance_df['Importance'] > 0.005) | (temp_importance_df['Importance'] < -0.005)]
+# I dont want a cluttered plot... So using a cutoff of 0.001 and -0.001
+temp_importance_df = temp_importance_df[(temp_importance_df['Importance'] > 0.001) | (temp_importance_df['Importance'] < -0.001)]
 temp_importance_df.sort_values(by='Importance', ascending=False, inplace=True)
 
 # Plotting Permutation Importance for Temporal Set 
