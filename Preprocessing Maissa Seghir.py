@@ -18,7 +18,8 @@ from sklearn.preprocessing import OneHotEncoder
 
 
 # Reading cleaned dataset
-df = pd.read_csv('cleaned_data.csv')
+#I changed this from cleaned data to only cleaned data after 2010
+df = pd.read_csv('contracts_after_2010.csv')
 print(df.head())
 print(df.info())
 print(df.describe())
@@ -143,6 +144,75 @@ check_class_balance(validation_data_rand, 'Target_binary', 'Random Validation Sp
 
 #There is a class imbalance in all instances where 1 is overrepresentend and 0 is underrepresented.The class imbalance is quite bad so i need SMOTE. Im doing SMOTE after feature engineering to 
 #Make sure classes are balanced in training data 
+#After running only data after 2010 the class imbalance is gone. See the following results after removing data from before and after dropping data from 2010:
+
+
+"""
+CLASS BALANCE BEFORE IN ALL CONTRACTS:
+
+Training set size (random): 18769
+Validation set size (random): 6256
+Testing set size (random): 6257
+
+Training set size (temporal): 18769
+Validation set size (temporal): 6256
+Testing set size (temporal): 6257
+Total size: 31282
+
+Class distribution for Temporal Training Split:
+1    13630
+0     5139
+
+Name: Target_binary, dtype: int64
+Class distribution for Temporal Validation Split:
+0    3249
+1    3007
+
+Name: Target_binary, dtype: int64
+Class distribution for Random Training Split:
+1    11801
+0     6968
+
+Name: Target_binary, dtype: int64
+Class distribution for Random Validation Split:
+1    3963
+0    2293
+
+CLASS BALANCE AFTER REMOVING CONTRACTS FROM BEFORE 2010:
+Training set size (random): 12550
+Validation set size (random): 4184
+Testing set size (random): 4184
+
+Training set size (temporal): 12550
+Validation set size (temporal): 4184
+Testing set size (temporal): 4184
+
+Total size: 20918
+
+Class distribution for Temporal Training Split:
+1    6519
+0    6031
+
+Name: Target_binary, dtype: int64
+Class distribution for Temporal Validation Split:
+0    2707
+1    1477
+
+Name: Target_binary, dtype: int64
+Class distribution for Random Training Split:
+0    6865
+1    5685
+
+Name: Target_binary, dtype: int64
+Class distribution for Random Validation Split:
+0    2277
+1    1907
+
+So the data after 2010 gets trained more evenly
+
+"""
+
+
 
 # FEATURE ENGINEERING FOR TRAINING DATA
 # IDEAS 
@@ -360,13 +430,14 @@ interpret_chi2_results(chi2_results_temp_df)
 print("Interpreting Chi-Squared Test Results for Random Training Set")
 interpret_chi2_results(chi2_results_rand_df)
 
+
 #Most categorical features are highly correlated with the target variable, That is good
 #Going to drop low correlation columns 
 
 columns_to_drop = ['Target','Ontvangstdatum_opzegging','Einddatum_contract','Contract_duur','Land','Huurobject', 'Energie_index', 
-    'Marktwaarde', 'Totaal kamers', 'Totale punten (afgerond)',
-    'Totale punten (onafgerond)', 'WOZ waarde', 'WOZ waarde per m2', 
-    'WOZ waarde per m2 (WWS)', 'Woonkamer','Energielabel', 'Markthuur', 'Maximaal_redelijke_huur', 'Streefhuur', 
+    'Marktwaarde', 'Totale punten (afgerond)',
+    'Totale punten (onafgerond)','WOZ waarde per m2', 
+    'WOZ waarde per m2 (WWS)', 'Woonkamer', 'Markthuur', 'Maximaal_redelijke_huur', 'Streefhuur', 
     'Year of demolition flag', 'EP2_waarde flag', 'Ontvangstdatum_opzegging flag', 
     'Reden_opzegging flag', 'Demolition_year', 'avg_contract_duration_per_property', 
     'avg_contract_duration_per_property_type', 'avg_contract_duration_per_complex', 
@@ -467,33 +538,18 @@ print("X_test_temp_encoded shape:", X_test_temp_encoded_df.shape)
 print("X_test_rand_encoded shape:", X_test_rand_encoded_df.shape)
 
 
-# Apply SMOTE to the temporal training set
-smote_temp = SMOTE(random_state=777)
-X_temp_balanced, y_temp_balanced = smote_temp.fit_resample(X_temp_encoded_df, y_temp)
-
-# Apply SMOTE to the random training set
-smote_rand = SMOTE(random_state=777) 
-X_rand_balanced, y_rand_balanced = smote_rand.fit_resample(X_rand_encoded_df, y_rand)
-
-# Check the class distribution after SMOTE
-print("Class distribution in Temporal Training Set after SMOTE:")
-print(y_temp_balanced.value_counts())
-
-print("Class distribution in Random Training Set after SMOTE:")
-print(y_rand_balanced.value_counts())
-
 # Save the balanced temporal split for the next step
 # Save the training, validation, and test datasets for temporal split
-X_temp_balanced.to_csv('X_train_temp.csv', index=False)
-y_temp_balanced.to_csv('y_train_temp.csv', index=False)
+X_temp_encoded_df.to_csv('X_train_temp.csv', index=False)
+y_temp.to_csv('y_train_temp.csv', index=False)
 X_val_temp_encoded_df.to_csv('X_val_temp.csv', index=False)
 y_val_temp.to_csv('y_val_temp.csv', index=False)
 X_test_temp_encoded_df.to_csv('X_test_temp.csv', index=False)
 y_test_temp.to_csv('y_test_temp.csv', index=False)
 
 # Save the training, validation, and test datasets for random split
-X_rand_balanced.to_csv('X_train_rand.csv', index=False)
-y_rand_balanced.to_csv('y_train_rand.csv', index=False)
+X_rand_encoded_df.to_csv('X_train_rand.csv', index=False)
+y_rand.to_csv('y_train_rand.csv', index=False)
 X_val_rand_encoded_df.to_csv('X_val_rand.csv', index=False)
 y_val_rand.to_csv('y_val_rand.csv', index=False)
 X_test_rand_encoded_df.to_csv('X_test_rand.csv', index=False)
