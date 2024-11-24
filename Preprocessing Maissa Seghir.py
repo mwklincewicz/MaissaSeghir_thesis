@@ -73,6 +73,39 @@ for col in labeled_data.select_dtypes(include=['datetime']).columns:
 # Drop the original columns with .loc
 labeled_data.drop(columns=['Year of construction', 'Year of demolition', 'Amfelddatum_VABI', 'Ingangsdatum_contract'], inplace=True)
 
+#I WANT THESE FEATURES TO BE CALCULATED OVER THE ENTIRE DATASET:
+
+#This feature calculates the total amount of tennants which have been in a property
+labeled_data['Totaal_Aantal_Historische_Huurders'] = labeled_data.groupby('VIBDRO_Huurobject_id')['Contractnummer'].transform('nunique')
+
+print(labeled_data[['VIBDRO_Huurobject_id', 'Contractnummer', 'Totaal_Aantal_Historische_Huurders']].head())
+
+#This feature calculates how many people have been in a property prior to the current tennant being in the property 
+
+# Sort data by house ID and contract start date
+labeled_data = labeled_data.sort_values(by=['VIBDRO_Huurobject_id', 'Contract_starting'])
+
+# Create the tenant position feature
+labeled_data['Aantal_Historische_Huurders_Vanaf_contractdatum'] = (
+    labeled_data.groupby('VIBDRO_Huurobject_id')
+    .cumcount() + 1
+)
+
+# Display the updated dataset
+print(labeled_data[['VIBDRO_Huurobject_id','Contract_starting', 'Aantal_Historische_Huurders_Vanaf_contractdatum']].head())
+
+#a feature to check the contract duration of the previous tenant
+# Sort data by House ID and Contract Start Date
+labeled_data = labeled_data.sort_values(by=['VIBDRO_Huurobject_id', 'Contract_starting'])
+
+# Shift the Target column within each house group to get the previous tenant's contract duration
+labeled_data['Contract_duur_vorige_huurder'] = labeled_data.groupby('VIBDRO_Huurobject_id')['Target'].shift(1)
+
+# Optionally, replace NaN values for the first tenant with a descriptive value
+labeled_data['Contract_duur_vorige_huurder'] = labeled_data['Contract_duur_vorige_huurder'].fillna('n.v.t.')
+
+# Check the output
+print(labeled_data[['VIBDRO_Huurobject_id', 'Contract_starting', 'Target', 'Contract_duur_vorige_huurder']].head(10))
 
 
 # TEMPORAL SPLIT AND RANDOM SPLIT
