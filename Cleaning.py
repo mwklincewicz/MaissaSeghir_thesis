@@ -9,7 +9,7 @@ from datetime import datetime
 from sklearn.impute import KNNImputer
 from sklearn.preprocessing import LabelEncoder
 import re
-
+import seaborn as sns
 
 #Open the file and check df
 df1 =pd.read_csv('thesis DSS.csv')
@@ -35,7 +35,7 @@ plt.subplot(1, 2, 1)
 plt.boxplot(df['Contract_duur'].dropna())
 plt.title('Boxplot of target variable')
 plt.ylabel('Contract duration')
-#plt.show() #remove hashtag if you want to see this plot, I personally dont want to see this plot every time i run the code
+plt.show() 
 
 #Historgram for further visualisation 
 target_variable= df['Contract_duur'].dropna()
@@ -46,7 +46,7 @@ sns.histplot(target_variable, kde=False, bins=100, color='grey', stat='density')
 plt.title('Distribution of contract durations')
 plt.xlabel('Contract duration')
 plt.ylabel('Density')
-#plt.show() #remove hashtag if you want to see this plot, I personally dont want to see this plot every time i run the code 
+plt.show() 
 
 #I want to check the house age to see if there is a temporal bias, more new houses = shorter contracts
 #first i need to convert dates and clean them to remove 9999 dates, which is something databricks does automatically when extracting from sap. 
@@ -67,12 +67,12 @@ print(df['Huis_leeftijd'].describe())
 house_age= df['Huis_leeftijd'].dropna()
 
 plt.figure(figsize=(10, 5))
-sns.histplot(house_age, kde=False, bins=100, color='grey', stat='density')
+sns.histplot(house_age, kde=False, bins=100, color='skyblue', stat='density')
 
 plt.title('Distribution of house ages')
 plt.xlabel('house age')
 plt.ylabel('Density')
-#plt.show()#remove hashtag if you want to see this plot, I personally dont want to see this plot every time i run the code
+plt.show()
 
 #check missing values
 
@@ -88,6 +88,236 @@ def display_missing_values(df, max_columns=None, max_rows=None):
 
 #print(display_missing_values(df, max_columns=None, max_rows=None)) #remove hashtag if you want to see this code. 
 
+#--- TARGET VARIABLE ---
+
+#making my binary target variable
+df['Target'] = df['Contract_duur'].apply(lambda x: '<=3' if x <= 3 else '>3' if pd.notnull(x) else '')
+
+#---TEMPORAL BIAS ANALYSIS ---
+
+# column conversion
+df['Ingangsdatum_contract'] = pd.to_datetime(df['Ingangsdatum_contract'], errors='coerce')
+
+# Extract the year
+df['contract_year'] = df['Ingangsdatum_contract'].dt.year
+
+# Calculate the percentage of contracts after 2010
+total_contracts = len(df)
+contracts_after_2010 = len(df[df['contract_year'] >= 2010])
+percentage_after_2010 = (contracts_after_2010 / total_contracts) * 100
+
+print(f"Percentage of contracts after 2010: {percentage_after_2010:.2f}%")
+
+#70% of the data are contracts from AFTER 2010. 
+#Which is around 50k rows
+
+# Filter for contracts after 2010 and where 'Contract_duur' is not -1 to see how much of this data is labeled and how much of it is unlabeled
+valid_contracts = df[(df['contract_year'] >= 2010) & (df['Contract_duur'] != -1)]
+
+# Calculate the percentage of labeled data after 2010
+total_contracts = len(df)
+percentage_valid_after_2010 = (len(valid_contracts) / total_contracts) * 100
+
+print(f"Percentage of contracts after 2010 with 'Contract_duur' not equal to -1: {percentage_valid_after_2010:.2f}%")
+
+#Labaled data after 2010 is 38%
+#Which is around 27k rows
+
+# Filter for contracts after 2010 where 'Contract_duur' is -1
+contracts_after_2010_negative_duration = df[(df['contract_year'] >= 2010) & (df['Contract_duur'] == -1)]
+
+# Calculate the percentage
+total_contracts = len(df)
+percentage_negative_after_2010 = (len(contracts_after_2010_negative_duration) / total_contracts) * 100
+
+print(f"Percentage of contracts after 2010 with 'Contract_duur' equal to -1: {percentage_negative_after_2010:.2f}%")
+
+#Unlabeled data after 2010 is 32%, which is which is around 23k rows
+
+#Lets split the data
+# Split the dataset into two based on the 'contract_year'
+df_before_2010 = df[df['contract_year'] < 2010]
+df_after_2010 = df[df['contract_year'] >= 2010]
+
+# Check the sizes of the new DataFrames
+print(f"Number of contracts before 2010: {len(df_before_2010)}")
+print(f"Number of contracts after 2010: {len(df_after_2010)}")
+
+# Calculate percentages
+total_contracts = len(df)
+percentage_before_2010 = (len(df_before_2010) / total_contracts) * 100
+percentage_after_2010 = (len(df_after_2010) / total_contracts) * 100
+
+print(f"Percentage of contracts before 2010: {percentage_before_2010:.2f}%")
+print(f"Percentage of contracts after 2010: {percentage_after_2010:.2f}%")
+
+
+#LETS CHECK THE CLASS BALANCE
+#Important for later, i did smote first but didnt do much, if there is a class imbalance i might need undersampling (random sampling majority class)
+# Check the class balance for 'Target' in both DataFrames
+print("Class Balance for Contracts Before 2010:")
+
+# Class balance before 2010
+class_balance_before_2010 = df_before_2010['Target'].value_counts(normalize=True) * 100
+print(class_balance_before_2010)
+
+"""Class Balance for Contracts Before 2010:
+>3     98.511205
+<=3     1.488795"""
+
+print("\nClass Balance for Contracts After 2010:")
+
+# Class balance after 2010
+class_balance_after_2010 = df_after_2010['Target'].value_counts(normalize=True) * 100
+print(class_balance_after_2010)
+
+"""Class Balance for Contracts After 2010:
+<=3    57.762834
+>3     42.237166"""
+
+# Check the counts for each class in both DataFrames
+counts_before_2010 = df_before_2010['Target'].value_counts()
+counts_after_2010 = df_after_2010['Target'].value_counts()
+
+print(f"\nCounts of each class in contracts before 2010:\n{counts_before_2010}")
+print(f"\nCounts of each class in contracts after 2010:\n{counts_after_2010}")
+
+# Calculate the percentage of missing values in the birthdate column for contracts after 2010, because this will be an important feature
+missing_birthdt_after_2010 = df_after_2010['df_BUT000_BIRTHDT'].isnull().sum()
+total_rows_after_2010 = len(df_after_2010)
+missing_percentage_after_2010 = (missing_birthdt_after_2010 / total_rows_after_2010) * 100
+
+print(f"Percentage of missing values in 'df_BUT000_BIRTHDT' for contracts after 2010: {missing_percentage_after_2010:.2f}%")
+
+#There is a very strong bias between the contract starting date and the contract duration, i want to mitigate the temporal bias, so im removing all data before 2010
+# Writing the contracts after 2010 data to a new CSV file
+df_after_2010.to_csv('contracts_after_2010.csv', index=False)
+
+print("Data after 2010 has been saved to 'contracts_after_2010.csv'")
+
+df= df_after_2010
+
+
+#Lets start with AGE, since i think this will be very important for prediction
+#Lets check the distribution
+
+# Convert the 'df_BUT000_BIRTHDT' and 'Ingangsdatum_contract' columns to datetime
+df['df_BUT000_BIRTHDT'] = pd.to_datetime(df['df_BUT000_BIRTHDT'], errors='coerce')
+df['Ingangsdatum_contract'] = pd.to_datetime(df['Ingangsdatum_contract'], errors='coerce')
+
+# Extract the year from both columns to calculate a new feature, which is the age of a tenant at the start of the contract
+df['birth_year'] = df['df_BUT000_BIRTHDT'].dt.year
+df['contract_year'] = df['Ingangsdatum_contract'].dt.year
+
+# Calculate age at the start of the contract
+df['age_at_contract_start'] = df['contract_year'] - df['birth_year']
+
+#Summary of stats 
+print("Summary Statistics for Age at Contract Start (Ignoring Missing Values):")
+print(df['age_at_contract_start'].describe())
+
+# Detailed summary
+mean_age = df['age_at_contract_start'].mean()
+median_age = df['age_at_contract_start'].median()
+min_age = df['age_at_contract_start'].min()
+max_age = df['age_at_contract_start'].max()
+
+print(f"\nDetailed Statistics:")
+print(f"Mean Age: {mean_age:.2f}")
+print(f"Median Age: {median_age:.2f}")
+print(f"Minimum Age: {min_age}")
+print(f"Maximum Age: {max_age}")
+
+
+# Histogram with KDE (ignores missing values automatically)
+plt.figure(figsize=(10, 6))
+sns.histplot(df['age_at_contract_start'], bins=30, kde=True, color='skyblue', edgecolor='black')
+plt.title('Age at Contract Start - Distribution', fontsize=16)
+plt.xlabel('Age', fontsize=12)
+plt.ylabel('Frequency', fontsize=12)
+plt.grid(axis='y', linestyle='--', alpha=0.7)
+plt.show()
+
+# Boxplot for Outliers (ignores missing values automatically)
+plt.figure(figsize=(8, 5))
+sns.boxplot(x=df['age_at_contract_start'], color='skyblue')
+plt.title('Boxplot of Age at Contract Start', fontsize=16)
+plt.xlabel('Age', fontsize=12)
+plt.grid(axis='x', linestyle='--', alpha=0.7)
+plt.show()
+
+# Outlier Detection
+q1 = df['age_at_contract_start'].quantile(0.25)
+q3 = df['age_at_contract_start'].quantile(0.75)
+iqr = q3 - q1
+lower_bound = q1 - 1.5 * iqr
+upper_bound = q3 + 1.5 * iqr
+
+print(f"\nOutlier Detection:")
+print(f"Lower Bound: {lower_bound:.2f}")
+print(f"Upper Bound: {upper_bound:.2f}")
+
+outliers = df['age_at_contract_start'][(df['age_at_contract_start'] < lower_bound) | (df['age_at_contract_start'] > upper_bound)]
+print(f"Number of Outliers: {len(outliers)}")
+
+# **Bucketing into 2-Year Intervals (After Analysis)**
+
+# Create age buckets (2-year intervals)
+age_bins = list(range(18, 102, 2))  # Buckets from 18 to 100 with 2-year intervals, someone younger than 18 cant rent a house and above 100 its very unlikely 
+age_labels = [f"{i}-{i+1}" for i in range(18, 100, 2)]  # Labels for the age intervals
+
+# Apply the bucketing to create a new 'age_bucket' column, ignoring NaNs automatically
+df['age_bucket'] = pd.cut(df['age_at_contract_start'], bins=age_bins, labels=age_labels, right=False)
+
+# Check the distribution of the new 'age_bucket' column
+print("\nAge Bucket Distribution:")
+print(df['age_bucket'].value_counts())
+
+# **Visualizations of Age Buckets**
+
+# Histogram of Age Buckets
+plt.figure(figsize=(10, 6))
+sns.countplot(x='age_bucket', data=df, palette='Blues', order=age_labels)
+plt.title('Age at Contract Start - Buckets', fontsize=16)
+plt.xlabel('Age Group (2-Year Intervals)', fontsize=12)
+plt.ylabel('Frequency', fontsize=12)
+plt.xticks(rotation=45)
+plt.grid(axis='y', linestyle='--', alpha=0.7)
+plt.show()
+
+# Boxplot for Age Buckets
+plt.figure(figsize=(8, 5))
+sns.boxplot(x='age_bucket', y='age_at_contract_start', data=df, palette='Blues')
+plt.title('Age at Contract Start - Boxplot by Age Bucket', fontsize=16)
+plt.xlabel('Age Group (2-Year Intervals)', fontsize=12)
+plt.ylabel('Age at Contract Start', fontsize=12)
+plt.xticks(rotation=45)
+plt.grid(axis='y', linestyle='--', alpha=0.7)
+plt.show()
+
+#KNN IMPUTATION
+
+# Measure the missing % before KNN imputation
+missing_percentage_before = df['age_bucket'].isnull().mean() * 100
+print(f"Missing percentage in 'age_bucket' before KNN imputation: {missing_percentage_before:.2f}%")
+
+# Convert 'age_bucket' to numeric for imputation (using labels)
+df['age_bucket_numeric'] = df['age_bucket'].astype('category').cat.codes
+
+# Initialize the KNN Imputer
+knn_imputer = KNNImputer(n_neighbors=5)
+
+# Perform KNN imputation on the 'age_bucket_numeric' column
+df['age_bucket_numeric'] = knn_imputer.fit_transform(df[['age_bucket_numeric']])
+
+# Convert the imputed numeric values back to the original age buckets
+df['age_bucket_imputed'] = df['age_bucket_numeric'].apply(
+    lambda x: age_labels[int(x)] if pd.notnull(x) else x
+)
+
+# Measure the missing % after KNN imputation
+missing_percentage_after = df['age_bucket_imputed'].isnull().mean() * 100
+print(f"Missing percentage in 'age_bucket' after KNN imputation: {missing_percentage_after:.2f}%")
 
 #drop duplicates and high %, except for columns that have missing columns for a reason (example, an empty value in year of demolition means the house is still standing)
 #And drop duplicates
@@ -100,8 +330,6 @@ df = df.drop(columns=[col for col in drop if col in df.columns])
 #Bedrijfswaarde I genuinly do not know how to impute properly because i dont know the defition behind is. Same goes for Historische kostprijs
 #print(df.head()) #remove hashtag if you want to see this code. 
 
-#making my binary target variable
-df['Target'] = df['Contract_duur'].apply(lambda x: '<=3' if x <= 3 else '>3' if pd.notnull(x) else '')
 
 #Treating missing values by data imputation 
 #A lot of conditional missing data, e.g. a parking spot is not going to have an energy label obviously, so we will need to treat every column type seperately
@@ -762,9 +990,9 @@ df['WOZ waarde'] = np.where(
 #force it to two decimals
 df['WOZ waarde'] = df['WOZ waarde'].apply(lambda x: f"{x:.2f}" if pd.notnull(x) else None)
 
-#Now its missing 2% 
- 
+#Now its missing 2%
 
+ 
 #write to cleaned data
 df.to_csv('cleaned_data.csv', index=False)
 cleaned_df =pd.read_csv('cleaned_data.csv')

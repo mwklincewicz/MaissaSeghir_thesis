@@ -18,8 +18,8 @@ from sklearn.preprocessing import OneHotEncoder
 
 
 # Reading cleaned dataset
-#I changed this from cleaned data to only cleaned data after 2010
-df = pd.read_csv('contracts_after_2010.csv')
+
+df =pd.read_csv('cleaned_data.csv')
 print(df.head())
 print(df.info())
 print(df.describe())
@@ -443,7 +443,14 @@ columns_to_drop = ['Target','Ontvangstdatum_opzegging','Einddatum_contract','Con
     'avg_contract_duration_per_property_type', 'avg_contract_duration_per_complex', 
     'avg_contract_duration_per_city', 'avg_contract_duration_per_region', 'rolling_mean_property_value', 
     'Aantal_slaapkamers', 'Aardgasloze_woning','Geen_deelname_energieproject','Contractnummer','VIBDRO_Huurobject_id','Gemeente',
-    'Woning_type','VERA_Type','Straat', 'Reden_opzegging'] 
+    'Woning_type','VERA_Type','Straat', 'Reden_opzegging','age_at_contract_start','age_bucket','age_bucket_imputed',
+    'df_VIBPOBJREL_INTRENO','df_BUT000_BIRTHDT','Contract_duur flag', 'Contract_starting','Contract_starting_year' ] 
+
+
+pd.set_option('display.max_columns', None)
+
+# check to column names to see if i have missed anything
+print(train_data_temp_with_features.columns.tolist())
 
 # Apply column drop to all datasets seperately
 train_data_temp_with_features = train_data_temp_with_features.drop(columns=columns_to_drop)
