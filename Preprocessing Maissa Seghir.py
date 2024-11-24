@@ -86,7 +86,7 @@ validation_data_rand, test_data_rand = train_test_split(temp_data_rand, test_siz
 # Get the size of the training set from the random split
 train_size = train_data_rand.shape[0]
 
-# Sort the labeled data by 'Huis_leeftijd' in descending order (oldest houses first)
+# Sort the labeled data by 'Contract_starting' in descending order (oldest contracts first)
 labeled_data_sorted = labeled_data.sort_values(by='Huis_leeftijd', ascending=False)
 
 # Calculate sizes for a 60/20/20 split
@@ -444,7 +444,7 @@ columns_to_drop = ['Target','Ontvangstdatum_opzegging','Einddatum_contract','Con
     'avg_contract_duration_per_city', 'avg_contract_duration_per_region', 'rolling_mean_property_value', 
     'Aantal_slaapkamers', 'Aardgasloze_woning','Geen_deelname_energieproject','Contractnummer','VIBDRO_Huurobject_id','Gemeente',
     'Woning_type','VERA_Type','Straat', 'Reden_opzegging','age_at_contract_start','age_bucket','age_bucket_imputed',
-    'df_VIBPOBJREL_INTRENO','df_BUT000_BIRTHDT','Contract_duur flag', 'Contract_starting','Contract_starting_year' ] 
+    'df_VIBPOBJREL_INTRENO','df_BUT000_BIRTHDT','Contract_duur flag', 'Contract_starting','Contract_starting_year','contract_year','birth_year'] 
 
 
 pd.set_option('display.max_columns', None)
