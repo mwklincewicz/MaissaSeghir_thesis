@@ -12,7 +12,15 @@ import re
 
 
 #Open the file and check df
-df =pd.read_csv('thesis DSS.csv')
+df1 =pd.read_csv('thesis DSS.csv')
+df2 = pd.read_csv('age + contract.csv')
+
+# Perform a left join
+df = df1.merge(df2, 
+                             how='left', 
+                             left_on='REkey_vicncn', 
+                             right_on='df_VIBPOBJREL_INTRENO')
+
 print(df.head())
 print(df.info())
 print(df.describe())

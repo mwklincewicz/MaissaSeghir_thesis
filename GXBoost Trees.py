@@ -2,10 +2,11 @@
 import pandas as pd
 import numpy as np
 from xgboost import XGBClassifier
-from sklearn.model_selection import cross_val_score, KFold, TimeSeriesSplit, RandomizedSearchCV
+from sklearn.model_selection import cross_val_score, KFold, TimeSeriesSplit, RandomizedSearchCV, StratifiedKFold
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, roc_auc_score, confusion_matrix
 import seaborn as sns
 import matplotlib.pyplot as plt
+from sklearn.inspection import permutation_importance
 
 # Load the balanced temporal training and validation datasets
 X_temp_balanced = pd.read_csv('X_train_temp.csv')
@@ -35,13 +36,43 @@ random_cv_scores = cross_val_score(xgb_model, X_rand_balanced, y_rand_balanced, 
 print("Random Set - 5-Fold Cross-Validation F1 Scores:", random_cv_scores)
 print("Random Set - Mean F1 Score:", np.mean(random_cv_scores))
 
-# Set up time series cross-validation for the temporal dataset
-tscv = TimeSeriesSplit(n_splits=5)
+# Custom function to create stratified time-series splits
+def stratified_time_series_split(X, y, n_splits=5):
+    # Create a list of indices to hold the splits
+    indices = []
+    
+    # Initialize the StratifiedKFold
+    stratified_kfold = StratifiedKFold(n_splits=n_splits, shuffle=False)
 
-# Perform cross-validation on the temporal set
-temporal_cv_scores = cross_val_score(xgb_model, X_temp_balanced, y_temp_balanced, cv=tscv, scoring='f1')
-print("Temporal Set - Time Series Cross-Validation F1 Scores:", temporal_cv_scores)
+    # Generate the indices for stratified time-series split
+    for train_index, val_index in stratified_kfold.split(X, y):
+        # Ensure we maintain the temporal order
+        # You can slice the indices based on time (first train, then test)
+        indices.append((train_index, val_index))
+        
+    return indices
+
+# Use the custom stratified time-series split function
+stratified_splits = stratified_time_series_split(X_temp_balanced, y_temp_balanced, n_splits=5)
+
+# Collect the F1 scores from each fold
+temporal_cv_scores = []
+for train_index, val_index in stratified_splits:
+    X_train, X_val = X_temp_balanced.iloc[train_index], X_temp_balanced.iloc[val_index]
+    y_train, y_val = y_temp_balanced.iloc[train_index], y_temp_balanced.iloc[val_index]
+    
+    # Fit the model and calculate F1 score on the validation set
+    xgb_model.fit(X_train, y_train)
+    y_pred = xgb_model.predict(X_val)
+    
+    # Calculate the F1 score for this fold
+    f1_score_temp = f1_score(y_val, y_pred)
+    temporal_cv_scores.append(f1_score_temp)
+
+# Print the results
+print("Temporal Set - Stratified Time Series Cross-Validation F1 Scores:", temporal_cv_scores)
 print("Temporal Set - Mean F1 Score:", np.mean(temporal_cv_scores))
+
 
 # Hyperparameter distribution for RandomizedSearchCV
 param_dist = {
@@ -129,13 +160,27 @@ conf_matrix_temp = confusion_matrix(y_val_temp, val_temp_predictions)
 print("Confusion Matrix (Temporal Set):")
 print(conf_matrix_temp)
 
-# Import necessary libraries for permutation importance
-from sklearn.inspection import permutation_importance
+
+# Combine training and validation datasets for Random Set
+X_train_val_rand = pd.concat([X_rand_balanced, x_val_rand], axis=0)
+y_train_val_rand = pd.concat([y_rand_balanced, y_val_rand], axis=0)
+
+# Combine training and validation datasets for Temporal Set
+X_train_val_temp = pd.concat([X_temp_balanced, x_val_temp], axis=0)
+y_train_val_temp = pd.concat([y_temp_balanced, y_val_temp], axis=0)
+
+# Fit final XGBoost model on the combined dataset for the Random Set
+final_model_rand_xgb = XGBClassifier(**random_search_rand.best_params_, random_state=777, eval_metric='logloss')
+final_model_rand_xgb.fit(X_train_val_rand, y_train_val_rand)
+
+# Fit final XGBoost model on the combined dataset for the Temporal Set
+final_model_temp_xgb = XGBClassifier(**random_search_temp.best_params_, random_state=777, eval_metric='logloss')
+final_model_temp_xgb.fit(X_train_val_temp, y_train_val_temp)
 
 #PERMUTATION IMPORTANCE
 
 # Permutation Importance for the Random Set
-perm_importance_rand_xgb = permutation_importance(best_model_rand, x_val_rand, y_val_rand, n_repeats=10, random_state=777)
+perm_importance_rand_xgb = permutation_importance(final_model_rand_xgb, x_val_rand, y_val_rand, n_repeats=10, random_state=777)
 importance_rand_df_xgb = pd.DataFrame({
     'Feature': X_rand_balanced.columns,
     'Importance': perm_importance_rand_xgb.importances_mean
@@ -152,7 +197,7 @@ plt.title('Permutation Importance (Random Set) - XGBoost')
 plt.show()
 
 # Permutation Importance for the Temporal Set
-perm_importance_temp_xgb = permutation_importance(best_model_temp, x_val_temp, y_val_temp, n_repeats=10, random_state=777)
+perm_importance_temp_xgb = permutation_importance(final_model_temp_xgb, x_val_temp, y_val_temp, n_repeats=10, random_state=777)
 importance_temp_df_xgb = pd.DataFrame({
     'Feature': X_temp_balanced.columns,
     'Importance': perm_importance_temp_xgb.importances_mean
@@ -172,12 +217,12 @@ plt.show()
 # TEST SET EVALUATION 
 
 # Test Set Evaluation for the Random Set
-test_rand_predictions_xgb = best_model_rand.predict(X_test_rand)
+test_rand_predictions_xgb = final_model_rand_xgb.predict(X_test_rand)
 test_rand_f1_xgb = f1_score(y_test_rand, test_rand_predictions_xgb)
 test_rand_accuracy_xgb = accuracy_score(y_test_rand, test_rand_predictions_xgb)
 test_rand_precision_xgb = precision_score(y_test_rand, test_rand_predictions_xgb)
 test_rand_recall_xgb = recall_score(y_test_rand, test_rand_predictions_xgb)
-test_rand_roc_auc_xgb = roc_auc_score(y_test_rand, best_model_rand.predict_proba(X_test_rand)[:, 1])
+test_rand_roc_auc_xgb = roc_auc_score(y_test_rand, final_model_rand_xgb.predict_proba(X_test_rand)[:, 1])
 test_rand_conf_matrix_xgb = confusion_matrix(y_test_rand, test_rand_predictions_xgb)
 
 print("\nTest Metrics (Random Set - XGBoost):")
@@ -189,12 +234,12 @@ print(f"AUC-ROC: {test_rand_roc_auc_xgb}")
 print(f"Confusion Matrix:\n{test_rand_conf_matrix_xgb}")
 
 # Test Set Evaluation for the Temporal Set
-test_temp_predictions_xgb = best_model_temp.predict(X_test_temp)
+test_temp_predictions_xgb = final_model_temp_xgb.predict(X_test_temp)
 test_temp_f1_xgb = f1_score(y_test_temp, test_temp_predictions_xgb)
 test_temp_accuracy_xgb = accuracy_score(y_test_temp, test_temp_predictions_xgb)
 test_temp_precision_xgb = precision_score(y_test_temp, test_temp_predictions_xgb)
 test_temp_recall_xgb = recall_score(y_test_temp, test_temp_predictions_xgb)
-test_temp_roc_auc_xgb = roc_auc_score(y_test_temp, best_model_temp.predict_proba(X_test_temp)[:, 1])
+test_temp_roc_auc_xgb = roc_auc_score(y_test_temp, final_model_temp_xgb.predict_proba(X_test_temp)[:, 1])
 test_temp_conf_matrix_xgb = confusion_matrix(y_test_temp, test_temp_predictions_xgb)
 
 print("\nTest Metrics (Temporal Set - XGBoost):")
@@ -205,8 +250,11 @@ print(f"F1-Score: {test_temp_f1_xgb}")
 print(f"AUC-ROC: {test_temp_roc_auc_xgb}")
 print(f"Confusion Matrix:\n{test_temp_conf_matrix_xgb}")
 
-"""Random Set - 5-Fold Cross-Validation F1 Scores: [0.81913303 0.82719547 0.82200087 0.81839878 0.81979257]
+"""METRICS ON ALL DATA
+
+Random Set - 5-Fold Cross-Validation F1 Scores: [0.81913303 0.82719547 0.82200087 0.81839878 0.81979257]
 Random Set - Mean F1 Score: 0.8213041439894152
+
 Temporal Set - Time Series Cross-Validation F1 Scores: [0.85541126 0.86601775 0.85850144 0.32064985 0.        ]
 Temporal Set - Mean F1 Score: 0.5801160592964267
 
@@ -254,5 +302,62 @@ Recall: 0.8423823626192827
 F1-Score: 0.6832132372564719
 AUC-ROC: 0.7513716444866005
 
+METRICS ON DATA AFTER 2010
 
+Random Set - 5-Fold Cross-Validation F1 Scores: [0.66403855 0.64892704 0.66223404 0.64736387 0.63555556]
+Random Set - Mean F1 Score: 0.651623810918287
+Temporal Set - Stratified Time Series Cross-Validation F1 Scores: [0.621765601217656, 0.6408368849283224, 0.673233695652174, 0.6735640385301463, 0.6851211072664359]
+Temporal Set - Mean F1 Score: 0.6589042655189469
+
+Fitting RandomizedSearchCV for Random Set...
+Fitting 5 folds for each of 50 candidates, totalling 250 fits
+Best Parameters (Random Set): {'subsample': 0.4, 'n_estimators': 200, 'min_child_weight': 3, 'max_depth': 7, 'learning_rate': 0.01, 'gamma': 0, 'colsample_bytree': 0.4}
+Best F1 Score (Random Set): 0.5162034835411139
+
+Fitting RandomizedSearchCV for Temporal Set...
+Fitting 5 folds for each of 50 candidates, totalling 250 fits
+Best Parameters (Temporal Set): {'subsample': 0.4, 'n_estimators': 200, 'min_child_weight': 3, 'max_depth': 7, 'learning_rate': 0.01, 'gamma': 0, 'colsample_bytree': 0.4}
+Best F1 Score (Temporal Set): 0.6891833090566674
+
+Validation Metrics (Random Set):
+Accuracy: 0.7069789674952199
+Precision: 0.6717095310136157
+Recall: 0.6984792868379653
+F1-Score: 0.6848329048843187
+AUC-ROC: 0.7062883917720788
+Confusion Matrix (Random Set):
+[[1626  651]
+ [ 575 1332]]
+
+Validation Metrics (Temporal Set):
+Accuracy: 0.6816443594646272
+Precision: 0.5386254661694193
+Recall: 0.6844955991875423
+F1-Score: 0.6028622540250448
+AUC-ROC: 0.6822921291098406
+Confusion Matrix (Temporal Set):
+[[1841  866]
+ [ 466 1011]]
+
+Test Metrics (Random Set - XGBoost):
+Accuracy: 0.6928776290630975
+Precision: 0.6592356687898089
+Recall: 0.6588859416445624
+F1-Score: 0.6590607588219688
+AUC-ROC: 0.7841517993638105
+Confusion Matrix:
+[[1657  642]
+ [ 643 1242]]
+
+Test Metrics (Temporal Set - XGBoost):
+Accuracy: 0.6663479923518164
+Precision: 0.5217169136433316
+Recall: 0.6893990546927752
+F1-Score: 0.5939499709133217
+AUC-ROC: 0.746491444347604
+Confusion Matrix:
+[[1767  936]
+ [ 460 1021]]
+
+ 
  """

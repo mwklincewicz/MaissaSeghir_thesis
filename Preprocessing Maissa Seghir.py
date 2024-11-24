@@ -24,6 +24,7 @@ print(df.head())
 print(df.info())
 print(df.describe())
 
+
 # Data split into labeled and unlabeled data
 labeled_data = df[df['Target'].notna()].copy()
 unlabeled_data = df[df['Target'].isna()].copy()
@@ -253,7 +254,7 @@ def feature_engineering(df):
     df = df.sort_values(['VIBDRO_Huurobject_id', 'Construction_year'])
     features['rolling_mean_property_value'] = df.groupby('VIBDRO_Huurobject_id')['WOZ waarde'].transform(lambda x: x.rolling(window=3, min_periods=1).mean())
 
-    #Amount of bedrooms in a house
+    # Amount of bedrooms in a house
     features['Aantal_slaapkamers'] = (
         (df['1e Slaapkamer'] > 0).astype(int) +
         (df['2e Slaapkamer'] > 0).astype(int) +
@@ -275,12 +276,12 @@ def feature_engineering(df):
             return 'Vrije huur'
 
     features['Huurklasse'] = df['Markthuur'].apply(assign_huurklasse)
-    
+
     df_with_features = pd.concat([df.reset_index(drop=True), features.reset_index(drop=True)], axis=1)
 
     return df_with_features
 
-# Apply feature engineering to every set seperately to avoid data leakage
+# Apply feature engineering to every set separately to avoid data leakage
 
 train_data_temp_with_features = feature_engineering(train_data_temp)
 train_data_rand_with_features = feature_engineering(train_data_rand)
@@ -288,7 +289,6 @@ validation_data_temp_with_features = feature_engineering(validation_data_temp)
 validation_data_rand_with_features = feature_engineering(validation_data_rand)
 test_data_temp_with_features = feature_engineering(test_data_temp)
 test_data_rand_with_features = feature_engineering(test_data_rand)
-
 
 
 # Function to plot correlation matrix, excluding categorical data that does not correlate numerically
@@ -443,7 +443,7 @@ columns_to_drop = ['Target','Ontvangstdatum_opzegging','Einddatum_contract','Con
     'avg_contract_duration_per_property_type', 'avg_contract_duration_per_complex', 
     'avg_contract_duration_per_city', 'avg_contract_duration_per_region', 'rolling_mean_property_value', 
     'Aantal_slaapkamers', 'Aardgasloze_woning','Geen_deelname_energieproject','Contractnummer','VIBDRO_Huurobject_id','Gemeente',
-    'Woning_type','VERA_Type','Straat', 'Reden_opzegging' ] 
+    'Woning_type','VERA_Type','Straat', 'Reden_opzegging'] 
 
 # Apply column drop to all datasets seperately
 train_data_temp_with_features = train_data_temp_with_features.drop(columns=columns_to_drop)

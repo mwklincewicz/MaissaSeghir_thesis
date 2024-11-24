@@ -1,7 +1,7 @@
 # Importing libraries
 import pandas as pd
 from sklearn.tree import DecisionTreeClassifier
-from sklearn.model_selection import cross_val_score, KFold, TimeSeriesSplit, GridSearchCV
+from sklearn.model_selection import cross_val_score, StratifiedKFold, KFold, GridSearchCV
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, roc_auc_score, confusion_matrix
 import numpy as np
 import seaborn as sns
@@ -28,19 +28,51 @@ y_test_rand = pd.read_csv('y_test_rand.csv')
 # Initialize the decision tree classifier with random state 777
 model = DecisionTreeClassifier(random_state=777)
 
-#Cross valication on the random set
-#Im using f1 as a measurement because accuracy might show a false high score by just predicting majority class all the time
+
+# Custom function to create stratified time-series splits
+def stratified_time_series_split(X, y, n_splits=5):
+    # Create a list of indices to hold the splits
+    indices = []
+    
+    # Initialize the StratifiedKFold
+    stratified_kfold = StratifiedKFold(n_splits=n_splits, shuffle=False)
+
+    # Generate the indices for stratified time-series split
+    for train_index, val_index in stratified_kfold.split(X, y):
+        # Ensure we maintain the temporal order
+        # You can slice the indices based on time (first train, then test)
+        indices.append((train_index, val_index))
+        
+    return indices
+
+# Use the custom stratified time-series split function
+stratified_splits = stratified_time_series_split(X_temp_balanced, y_temp_balanced, n_splits=5)
+
+# Collect the F1 scores from each fold
+temporal_cv_scores = []
+for train_index, val_index in stratified_splits:
+    X_train, X_val = X_temp_balanced.iloc[train_index], X_temp_balanced.iloc[val_index]
+    y_train, y_val = y_temp_balanced.iloc[train_index], y_temp_balanced.iloc[val_index]
+    
+    # Fit the model and calculate F1 score on the validation set
+    model.fit(X_train, y_train)
+    y_pred = model.predict(X_val)
+    
+    # Calculate the F1 score for this fold
+    f1_score_temp = f1_score(y_val, y_pred)
+    temporal_cv_scores.append(f1_score_temp)
+
+# Print the results
+print("Temporal Set - Stratified Time Series Cross-Validation F1 Scores:", temporal_cv_scores)
+print("Temporal Set - Mean F1 Score:", np.mean(temporal_cv_scores))
+
+# Cross-validation on the random set
+# I'm using f1 as a measurement because accuracy might show a false high score by just predicting majority class all the time
 kf = KFold(n_splits=5, shuffle=True, random_state=777)
 random_cv_scores = cross_val_score(model, X_rand_balanced, y_rand_balanced, cv=kf, scoring='f1')
 print("Random Set - 5-Fold Cross-Validation F1 Scores:", random_cv_scores)
 print("Random Set - Mean F1 Score:", np.mean(random_cv_scores))
 
-#Cross valication on the temporal set
-#Im using f1 as a measurement because accuracy might show a false high score by just predicting majority class all the time
-tscv = TimeSeriesSplit(n_splits=5)
-temporal_cv_scores = cross_val_score(model, X_temp_balanced, y_temp_balanced, cv=tscv, scoring='f1')
-print("Temporal Set - Time Series Cross-Validation F1 Scores:", temporal_cv_scores)
-print("Temporal Set - Mean F1 Score:", np.mean(temporal_cv_scores))
 
 # Grid Search for Hyperparameter Tuning
 param_grid = {
@@ -109,9 +141,22 @@ print(f"F1-Score: {f1_temp}")
 print(f"AUC-ROC: {roc_auc_temp}")
 print(f"Confusion Matrix:\n{conf_matrix_temp}")
 
+# Combine the training and validation datasets for both random and temporal splits
+X_combined_rand = pd.concat([X_rand_balanced, x_val_rand], axis=0)
+y_combined_rand = pd.concat([y_rand_balanced, y_val_rand], axis=0)
+
+X_combined_temp = pd.concat([X_temp_balanced, x_val_temp], axis=0)
+y_combined_temp = pd.concat([y_temp_balanced, y_val_temp], axis=0)
+
+# final model fit on the best models on the combined training and validation sets
+final_model_rand = grid_search_rand.best_estimator_
+final_model_rand.fit(X_combined_rand, y_combined_rand)
+
+final_model_temp = grid_search_temp.best_estimator_
+final_model_temp.fit(X_combined_temp, y_combined_temp)
 
 # Permutation Importance for Random Set
-perm_importance_rand = permutation_importance(best_model_rand, x_val_rand, y_val_rand, n_repeats=10, random_state=777)
+perm_importance_rand = permutation_importance(final_model_rand, x_val_rand, y_val_rand, n_repeats=10, random_state=777)
 rand_importance_df = pd.DataFrame({
     'Feature': X_rand_balanced.columns,
     'Importance': perm_importance_rand.importances_mean
@@ -130,7 +175,7 @@ plt.ylabel('Feature')
 plt.show()
 
 # Permutation Importance for Temporal Set
-perm_importance_temp = permutation_importance(best_model_temp, x_val_temp, y_val_temp, n_repeats=10, random_state=777)
+perm_importance_temp = permutation_importance(final_model_temp, x_val_temp, y_val_temp, n_repeats=10, random_state=777)
 temp_importance_df = pd.DataFrame({
     'Feature': X_temp_balanced.columns,
     'Importance': perm_importance_temp.importances_mean
@@ -148,11 +193,10 @@ plt.xlabel('Mean Importance')
 plt.ylabel('Feature')
 plt.show()
 
-#FINAL EVALUATION ON THE TEST SET
-
+# FINAL EVALUATION ON THE TEST SET
 
 # Test the best model from the Random Split on the Random Test Set
-test_rand_predictions = best_model_rand.predict(x_test_rand)
+test_rand_predictions = final_model_rand.predict(x_test_rand)
 
 # Calculate the evaluation metrics from the random split on the Random Test Set
 accuracy_test_rand = accuracy_score(y_test_rand, test_rand_predictions)
@@ -162,20 +206,19 @@ f1_test_rand = f1_score(y_test_rand, test_rand_predictions)
 roc_auc_test_rand = roc_auc_score(y_test_rand, best_model_rand.predict_proba(x_test_rand)[:, 1])
 conf_matrix_test_rand = confusion_matrix(y_test_rand, test_rand_predictions)
 
-# Print evaluation metrics for the Random Test Set
-print("\nTest Metrics (Random Set):")
-print(f"Accuracy: {accuracy_test_rand:.4f}")
-print(f"Precision: {precision_test_rand:.4f}")
-print(f"Recall: {recall_test_rand:.4f}")
-print(f"F1-Score: {f1_test_rand:.4f}")
-print(f"AUC-ROC: {roc_auc_test_rand:.4f}")
+# Print the test metrics for the Random Test Set
+print("Test Metrics (Random Set):")
+print(f"Accuracy: {accuracy_test_rand}")
+print(f"Precision: {precision_test_rand}")
+print(f"Recall: {recall_test_rand}")
+print(f"F1-Score: {f1_test_rand}")
+print(f"AUC-ROC: {roc_auc_test_rand}")
 print(f"Confusion Matrix:\n{conf_matrix_test_rand}")
 
-
 # Test the best model from the Temporal Split on the Temporal Test Set
-test_temp_predictions = best_model_temp.predict(x_test_temp)
+test_temp_predictions = final_model_temp.predict(x_test_temp)
 
-# Calculate evaluation metrics on the Temporal Test Set
+# Calculate the evaluation metrics from the temporal split on the Temporal Test Set
 accuracy_test_temp = accuracy_score(y_test_temp, test_temp_predictions)
 precision_test_temp = precision_score(y_test_temp, test_temp_predictions)
 recall_test_temp = recall_score(y_test_temp, test_temp_predictions)
@@ -183,16 +226,16 @@ f1_test_temp = f1_score(y_test_temp, test_temp_predictions)
 roc_auc_test_temp = roc_auc_score(y_test_temp, best_model_temp.predict_proba(x_test_temp)[:, 1])
 conf_matrix_test_temp = confusion_matrix(y_test_temp, test_temp_predictions)
 
-# Print evaluation metrics for the Temporal Test Set
-print("\nTest Metrics (Temporal Set):")
-print(f"Accuracy: {accuracy_test_temp:.4f}")
-print(f"Precision: {precision_test_temp:.4f}")
-print(f"Recall: {recall_test_temp:.4f}")
-print(f"F1-Score: {f1_test_temp:.4f}")
-print(f"AUC-ROC: {roc_auc_test_temp:.4f}")
+# Print the test metrics for the Temporal Test Set
+print("Test Metrics (Temporal Set):")
+print(f"Accuracy: {accuracy_test_temp}")
+print(f"Precision: {precision_test_temp}")
+print(f"Recall: {recall_test_temp}")
+print(f"F1-Score: {f1_test_temp}")
+print(f"AUC-ROC: {roc_auc_test_temp}")
 print(f"Confusion Matrix:\n{conf_matrix_test_temp}")
 
-"""RESULTS:
+"""RESULTS ON ENTIRE DATASET:
 Random Set - 5-Fold Cross-Validation F1 Scores: [0.78583618 0.79333478 0.78772157 0.79343838 0.7962248 ]
 Random Set - Mean F1 Score: 0.7913111400594282
 
@@ -246,4 +289,60 @@ AUC-ROC: 0.6041
 Confusion Matrix:
 [[1640 1578]
  [ 916 2123]]
+
+ RESULTS ON ONLY DATA AFTER 2010:
+
+Temporal Set - Stratified Time Series Cross-Validation F1 Scores: [0.5872534142640364, 0.5988212180746562, 0.6174944403261675, 0.6045262754123514, 0.6151480199923107]
+Temporal Set - Mean F1 Score: 0.6046486736139045
+
+Random Set - 5-Fold Cross-Validation F1 Scores: [0.60099864 0.61457419 0.61364663 0.60907889 0.5916781 ]
+Random Set - Mean F1 Score: 0.6059952893726763
+
+Fitting 5 folds for each of 90 candidates, totalling 450 fits
+Best Parameters (Random Set): {'criterion': 'entropy', 'max_depth': 5, 'min_samples_leaf': 4, 'min_samples_split': 2}
+Best F1 Score (Random Set): 0.5587684743342667
+
+Fitting 5 folds for each of 90 candidates, totalling 450 fits
+Best Parameters (Temporal Set): {'criterion': 'entropy', 'max_depth': 5, 'min_samples_leaf': 2, 'min_samples_split': 10}
+Best F1 Score (Temporal Set): 0.6968102670699478
+
+Validation Metrics (Random Set):
+Accuracy: 0.6842734225621415
+Precision: 0.6109848484848485
+Recall: 0.8458311484006292
+F1-Score: 0.7094787772157466
+AUC-ROC: 0.7700640153616602
+Confusion Matrix:
+[[1250 1027]
+ [ 294 1613]]
+
+Validation Metrics (Temporal Set):
+Accuracy: 0.6472275334608031
+Precision: 0.5002736726874658
+Recall: 0.6188219363574814
+F1-Score: 0.553268765133172
+AUC-ROC: 0.6951930587441121
+Confusion Matrix:
+[[1794  913]
+ [ 563  914]]
+
+Test Metrics (Random Set):
+Accuracy: 0.6869
+Precision: 0.6119
+Recall: 0.8340
+F1-Score: 0.7059
+AUC-ROC: 0.7701
+Confusion Matrix:
+[[1302  997]
+ [ 313 1572]]
+
+Test Metrics (Temporal Set):
+Accuracy: 0.7502390057361377
+Precision: 0.6752411575562701
+Recall: 0.5671843349088453
+F1-Score: 0.6165137614678899
+AUC-ROC: 0.8149745087797263
+Confusion Matrix:
+[[2299  404]
+ [ 641  840]]
 """
