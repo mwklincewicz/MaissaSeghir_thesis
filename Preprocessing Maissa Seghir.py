@@ -86,7 +86,7 @@ validation_data_rand, test_data_rand = train_test_split(temp_data_rand, test_siz
 # Get the size of the training set from the random split
 train_size = train_data_rand.shape[0]
 
-# Sort the labeled data by 'Contract_starting' in descending order (oldest contracts first)
+# Sort the labeled data by 'House age' in descending order (oldest houses first)
 labeled_data_sorted = labeled_data.sort_values(by='Huis_leeftijd', ascending=False)
 
 # Calculate sizes for a 60/20/20 split
@@ -180,34 +180,28 @@ Class distribution for Random Validation Split:
 0    2293
 
 CLASS BALANCE AFTER REMOVING CONTRACTS FROM BEFORE 2010:
-Training set size (random): 12550
-Validation set size (random): 4184
-Testing set size (random): 4184
-
-Training set size (temporal): 12550
-Validation set size (temporal): 4184
-Testing set size (temporal): 4184
-
-Total size: 20918
-
+Training set size (random): 12151
+Validation set size (random): 4051
+Testing set size (random): 4051
+Training set size (temporal): 12151
+Validation set size (temporal): 4051
+Testing set size (temporal): 4051
+Total size: 20253
 Class distribution for Temporal Training Split:
-1    6519
-0    6031
-
+1    6283
+0    5868
 Name: Target_binary, dtype: int64
 Class distribution for Temporal Validation Split:
-0    2707
-1    1477
-
+0    2651
+1    1400
 Name: Target_binary, dtype: int64
 Class distribution for Random Training Split:
-0    6865
-1    5685
-
+0    6713
+1    5438
 Name: Target_binary, dtype: int64
 Class distribution for Random Validation Split:
-0    2277
-1    1907
+0    2190
+1    1861
 
 So the data after 2010 gets trained more evenly
 

@@ -21,9 +21,14 @@ df = df1.merge(df2,
                              left_on='REkey_vicncn', 
                              right_on='df_VIBPOBJREL_INTRENO')
 
+
 print(df.head())
 print(df.info())
 print(df.describe())
+
+df.to_csv('merged_data.csv', index=False)
+
+
 
 #Check target variable statistics, checking for differences between mean and median, checking distribution
 print(df['Contract_duur'].describe())
@@ -136,8 +141,13 @@ print(f"Percentage of contracts after 2010 with 'Contract_duur' equal to -1: {pe
 
 #Lets split the data
 # Split the dataset into two based on the 'contract_year'
+
+# Assign rows with contract_year before 2010 to df_before_2010
 df_before_2010 = df[df['contract_year'] < 2010]
-df_after_2010 = df[df['contract_year'] >= 2010]
+
+# Assign all other rows (those not in df_before_2010) to df_after_2010
+df_after_2010 = df[~df.index.isin(df_before_2010.index)]
+
 
 # Check the sizes of the new DataFrames
 print(f"Number of contracts before 2010: {len(df_before_2010)}")
@@ -161,9 +171,9 @@ print("Class Balance for Contracts Before 2010:")
 class_balance_before_2010 = df_before_2010['Target'].value_counts(normalize=True) * 100
 print(class_balance_before_2010)
 
-"""Class Balance for Contracts Before 2010:
->3     98.511205
-<=3     1.488795"""
+#Class Balance for Contracts Before 2010:
+#>3     98.511205
+#<=3     1.488795
 
 print("\nClass Balance for Contracts After 2010:")
 
@@ -171,9 +181,9 @@ print("\nClass Balance for Contracts After 2010:")
 class_balance_after_2010 = df_after_2010['Target'].value_counts(normalize=True) * 100
 print(class_balance_after_2010)
 
-"""Class Balance for Contracts After 2010:
-<=3    57.762834
->3     42.237166"""
+#Class Balance for Contracts After 2010:
+#<=3    57.762834
+#>3     42.237166
 
 # Check the counts for each class in both DataFrames
 counts_before_2010 = df_before_2010['Target'].value_counts()
@@ -192,8 +202,9 @@ print(f"Percentage of missing values in 'df_BUT000_BIRTHDT' for contracts after 
 #There is a very strong bias between the contract starting date and the contract duration, i want to mitigate the temporal bias, so im removing all data before 2010
 # Writing the contracts after 2010 data to a new CSV file
 df_after_2010.to_csv('contracts_after_2010.csv', index=False)
+df_before_2010.to_csv('contracts_before_2010.csv', index=False)
 
-print("Data after 2010 has been saved to 'contracts_after_2010.csv'")
+
 
 df= df_after_2010
 
@@ -368,7 +379,7 @@ rooms = ["Zolder", "Verwarmde overige ruimten", "2e Slaapkamer",
                     "1e Slaapkamer",  
                     "Verwarmde vertrekken", "Totaal overige ruimtes", 
                     "Keuken", "Badkamer/doucheruimte 1", 
-                    "Totaal kamers", "Woonkamer", "Toilet (Sanitair 1)"]
+                    "Totaal kamers", "Woonkamer", "Toilet (Sanitair 1)","Bergruimte/schuur 2"]
 
 real_rooms = [col for col in rooms if col in df.columns]
 
@@ -569,6 +580,7 @@ merged_df = merged_df.drop(columns=['VHE nummer', 'VERA typering'])
 
 df = merged_df
 
+
 """
 
 #This didnt seem to work, the missing values seem to be from houses that we currently no longer have. 
@@ -759,7 +771,6 @@ df['VERA_Type'] = df.apply(
 #Doing KNN-imputation for the other 5% of missing Omschrijving_Vastgoed
 #Again using source: https://www.geeksforgeeks.org/python-imputation-using-the-knnimputer/
 # Label encoder
-
 
 
 # Step 1: Label encode 'Omschrijving_Vastgoed'
