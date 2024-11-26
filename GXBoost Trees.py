@@ -359,5 +359,60 @@ Confusion Matrix:
 [[1767  936]
  [ 460 1021]]
 
+  After removing temporal features and adding in new features to mitigate bias:
+  Random Set - 5-Fold Cross-Validation F1 Scores: [0.6519982  0.63719234 0.63466667 0.62957812 0.6537931 ]
+Random Set - Mean F1 Score: 0.6414456868971492
+Temporal Set - Stratified Time Series Cross-Validation F1 Scores: [0.6094698502630513, 0.5918032786885246, 0.6626248216833096, 0.6671592168452162, 0.6362608367885413]
+Temporal Set - Mean F1 Score: 0.6334636008537287
+
+Fitting RandomizedSearchCV for Random Set...
+Fitting 5 folds for each of 50 candidates, totalling 250 fits
+Best Parameters (Random Set): {'subsample': 0.4, 'n_estimators': 270, 'min_child_weight': 7, 'max_depth': 10, 'learning_rate': 0.01, 'gamma': 0.4, 'colsample_bytree': 0.4}
+Best F1 Score (Random Set): 0.4986414361435735
+
+Fitting RandomizedSearchCV for Temporal Set...
+Fitting 5 folds for each of 50 candidates, totalling 250 fits
+Best Parameters (Temporal Set): {'subsample': 0.7, 'n_estimators': 170, 'min_child_weight': 7, 'max_depth': 12, 'learning_rate': 0.01, 'gamma': 0.5, 'colsample_bytree': 0.6}
+Best F1 Score (Temporal Set): 0.6595490726667338
+
+Validation Metrics (Random Set):
+Accuracy: 0.6736608244877808
+Precision: 0.6440092165898618
+Recall: 0.6136114160263447
+F1-Score: 0.628442945474986
+AUC-ROC: 0.6681785209337645
+Confusion Matrix (Random Set):
+[[1611  618]
+ [ 704 1118]]
+
+Validation Metrics (Temporal Set):
+Accuracy: 0.6711922981979758
+Precision: 0.5199750312109863
+Recall: 0.5967048710601719
+F1-Score: 0.5557038025350234
+AUC-ROC: 0.6535313432513665
+Confusion Matrix (Temporal Set):
+[[1886  769]
+ [ 563  833]]
+
+Test Metrics (Random Set - XGBoost):
+Accuracy: 0.6825475191310787
+Precision: 0.6488332384746728
+Recall: 0.6301824212271974
+F1-Score: 0.6393718452047111
+AUC-ROC: 0.7469613721461086
+Confusion Matrix:
+[[1625  617]
+ [ 669 1140]]
+
+Test Metrics (Temporal Set - XGBoost):
+Accuracy: 0.7635151814366823
+Precision: 0.7324516785350966
+Recall: 0.508833922261484
+F1-Score: 0.6005004170141784
+AUC-ROC: 0.8171356643806602
+Confusion Matrix:
+[[2373  263]
+ [ 695  720]]
  
  """

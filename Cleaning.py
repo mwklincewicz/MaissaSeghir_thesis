@@ -11,23 +11,60 @@ from sklearn.preprocessing import LabelEncoder
 import re
 import seaborn as sns
 
-#Open the file and check df
-df1 =pd.read_csv('thesis DSS.csv')
+import pandas as pd
+
+import pandas as pd
+
+# Open the files and check df
+import pandas as pd
+
+# Open the files and check df
+df1 = pd.read_csv('thesis DSS.csv')
 df2 = pd.read_csv('age + contract.csv')
+df3 = pd.read_csv('Mutatiegraad per SAP complex 2010.csv', delimiter=';')
+df4 = pd.read_csv('Mutatiegraad per VHE 2010.csv', delimiter=';')
 
-# Perform a left join
+import pandas as pd
+
+# Read the CSV files into dataframes
+df1 = pd.read_csv('thesis DSS.csv')
+df2 = pd.read_csv('age + contract.csv')
+df3 = pd.read_csv('Mutatiegraad per SAP complex 2010.csv', delimiter=';')
+df4 = pd.read_csv('Mutatiegraad per VHE 2010.csv', delimiter=';')
+
+# Convert the columns to numeric, handling errors by coercing to NaN where necessary
+df1['Bedrijfscode'] = pd.to_numeric(df1['Bedrijfscode'], errors='coerce').fillna(0).astype('Int64')  # Convert to Int64 and handle NaNs
+df1['complexnummer'] = pd.to_numeric(df1['complexnummer'], errors='coerce').fillna(0).astype('Int64')  # Convert to Int64 and handle NaNs
+df1['Huurobject'] = pd.to_numeric(df1['Huurobject'], errors='coerce').fillna(0).astype('Int64')  # Convert to Int64 and handle NaNs
+
+# Optionally, drop rows where the necessary columns are NaN (if you want to keep only complete rows)
+df1.dropna(subset=['Bedrijfscode', 'complexnummer', 'Huurobject'], inplace=True)
+
+# Create the 'VHE' key in df1 by combining the columns
+df1['VHE'] = 'HO ' + df1['Bedrijfscode'].astype(str) + '/' + \
+             df1['complexnummer'].astype(str) + '/' + \
+             df1['Huurobject'].astype(str)
+
+# Merge df1 and df2 using the 'REkey_vicncn' from df1 and 'df_VIBPOBJREL_INTRENO' from df2
 df = df1.merge(df2, 
-                             how='left', 
-                             left_on='REkey_vicncn', 
-                             right_on='df_VIBPOBJREL_INTRENO')
+               how='left', 
+               left_on='REkey_vicncn', 
+               right_on='df_VIBPOBJREL_INTRENO')
 
+# Merge the resulting dataframe with df3 using 'complexnummer' from df and 'Complex' from df3
+df = df.merge(df3, 
+              how='left', 
+              left_on='complexnummer', 
+              right_on='Complex')
 
-print(df.head())
-print(df.info())
-print(df.describe())
+# Merge the resulting dataframe with df4 using the 'VHE' column from df and 'Huurobject' from df4
+df = df.merge(df4, 
+              how='left', 
+              left_on='VHE', 
+              right_on='Huurobject')
 
+# Save the merged dataframe to a CSV file
 df.to_csv('merged_data.csv', index=False)
-
 
 
 #Check target variable statistics, checking for differences between mean and median, checking distribution
@@ -308,6 +345,12 @@ plt.show()
 
 #KNN IMPUTATION
 
+#MUTATIONGRADE PROPERTY LEVEL
+
+#MUTATIONGRADE COMPLEX LEVEL
+
+#AGE BUCKET KNN IMPUTE
+
 # Measure the missing % before KNN imputation
 missing_percentage_before = df['age_bucket'].isnull().mean() * 100
 print(f"Missing percentage in 'age_bucket' before KNN imputation: {missing_percentage_before:.2f}%")
@@ -549,6 +592,7 @@ df = df.apply(impute_eengezins_meergezins_and_vera_type, axis=1)
 #Make a column thats unique and the same to i can leftjoin 
 #This code doesnt do anything to decrease missing values so im putting in """ """so it doesnt run everytime because it takes a long time to run
 #If you want to run it remove the """ """
+
 """
 df['Bedrijfscode'] = pd.to_numeric(df['Bedrijfscode'], errors='coerce').astype('Int64') 
 df['complexnummer'] = pd.to_numeric(df['complexnummer'], errors='coerce').astype('Int64')
@@ -582,6 +626,7 @@ df = merged_df
 
 
 """
+
 
 #This didnt seem to work, the missing values seem to be from houses that we currently no longer have. 
 #I do have encoded Woning_type, so i will conditionally impute it based on that information 
