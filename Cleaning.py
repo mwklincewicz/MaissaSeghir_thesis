@@ -236,6 +236,20 @@ missing_percentage_after_2010 = (missing_birthdt_after_2010 / total_rows_after_2
 
 print(f"Percentage of missing values in 'df_BUT000_BIRTHDT' for contracts after 2010: {missing_percentage_after_2010:.2f}%")
 
+
+
+# Calculate the percentage of missing values in the mutation_grade per complex  for contracts after 2010, because this will be an important feature
+missing_mut_x_after_2010 = df_after_2010['Mutatiegraad_x'].isnull().sum()
+missing_percentage_after_2010 = (missing_mut_x_after_2010 / total_rows_after_2010) * 100
+
+print(f"Percentage of missing values in 'Mutatiegraad_x' for contracts after 2010: {missing_percentage_after_2010:.2f}%")
+
+# Calculate the percentage of missing values in the mutation_grade perproperty for contracts after 2010, because this will be an important feature
+missing_mut_y_after_2010 = df_after_2010['Mutatiegraad_y'].isnull().sum()
+missing_percentage_after_2010 = (missing_mut_y_after_2010 / total_rows_after_2010) * 100
+
+print(f"Percentage of missing values in 'Mutatiegraad_y' for contracts after 2010: {missing_percentage_after_2010:.2f}%")
+
 #There is a very strong bias between the contract starting date and the contract duration, i want to mitigate the temporal bias, so im removing all data before 2010
 # Writing the contracts after 2010 data to a new CSV file
 df_after_2010.to_csv('contracts_after_2010.csv', index=False)
@@ -249,7 +263,7 @@ df= df_after_2010
 #Lets start with AGE, since i think this will be very important for prediction
 #Lets check the distribution
 
-# Convert the 'df_BUT000_BIRTHDT' and 'Ingangsdatum_contract' columns to datetime
+# Convert to datetime
 df['df_BUT000_BIRTHDT'] = pd.to_datetime(df['df_BUT000_BIRTHDT'], errors='coerce')
 df['Ingangsdatum_contract'] = pd.to_datetime(df['Ingangsdatum_contract'], errors='coerce')
 
@@ -277,7 +291,7 @@ print(f"Minimum Age: {min_age}")
 print(f"Maximum Age: {max_age}")
 
 
-# Histogram with KDE (ignores missing values automatically)
+# Histogram with KDE
 plt.figure(figsize=(10, 6))
 sns.histplot(df['age_at_contract_start'], bins=30, kde=True, color='skyblue', edgecolor='black')
 plt.title('Age at Contract Start - Distribution', fontsize=16)
@@ -286,7 +300,7 @@ plt.ylabel('Frequency', fontsize=12)
 plt.grid(axis='y', linestyle='--', alpha=0.7)
 plt.show()
 
-# Boxplot for Outliers (ignores missing values automatically)
+# Boxplot for Outliers 
 plt.figure(figsize=(8, 5))
 sns.boxplot(x=df['age_at_contract_start'], color='skyblue')
 plt.title('Boxplot of Age at Contract Start', fontsize=16)
@@ -308,13 +322,13 @@ print(f"Upper Bound: {upper_bound:.2f}")
 outliers = df['age_at_contract_start'][(df['age_at_contract_start'] < lower_bound) | (df['age_at_contract_start'] > upper_bound)]
 print(f"Number of Outliers: {len(outliers)}")
 
-# **Bucketing into 2-Year Intervals (After Analysis)**
+# Bucketing into 2-Year Intervals
 
 # Create age buckets (2-year intervals)
 age_bins = list(range(18, 102, 2))  # Buckets from 18 to 100 with 2-year intervals, someone younger than 18 cant rent a house and above 100 its very unlikely 
-age_labels = [f"{i}-{i+1}" for i in range(18, 100, 2)]  # Labels for the age intervals
+age_labels = [f"{i}-{i+1}" for i in range(18, 100, 2)] 
 
-# Apply the bucketing to create a new 'age_bucket' column, ignoring NaNs automatically
+# Apply the bucketing to create a new 'age_bucket' column
 df['age_bucket'] = pd.cut(df['age_at_contract_start'], bins=age_bins, labels=age_labels, right=False)
 
 # Check the distribution of the new 'age_bucket' column
@@ -343,35 +357,9 @@ plt.xticks(rotation=45)
 plt.grid(axis='y', linestyle='--', alpha=0.7)
 plt.show()
 
-#KNN IMPUTATION
+#Doing KNN for age buckets and mutation grades after conditional data imputation, since there are some important features with high % that i need to do conditional imputation for before KNN imputation on age bucket
 
-#MUTATIONGRADE PROPERTY LEVEL
 
-#MUTATIONGRADE COMPLEX LEVEL
-
-#AGE BUCKET KNN IMPUTE
-
-# Measure the missing % before KNN imputation
-missing_percentage_before = df['age_bucket'].isnull().mean() * 100
-print(f"Missing percentage in 'age_bucket' before KNN imputation: {missing_percentage_before:.2f}%")
-
-# Convert 'age_bucket' to numeric for imputation (using labels)
-df['age_bucket_numeric'] = df['age_bucket'].astype('category').cat.codes
-
-# Initialize the KNN Imputer
-knn_imputer = KNNImputer(n_neighbors=5)
-
-# Perform KNN imputation on the 'age_bucket_numeric' column
-df['age_bucket_numeric'] = knn_imputer.fit_transform(df[['age_bucket_numeric']])
-
-# Convert the imputed numeric values back to the original age buckets
-df['age_bucket_imputed'] = df['age_bucket_numeric'].apply(
-    lambda x: age_labels[int(x)] if pd.notnull(x) else x
-)
-
-# Measure the missing % after KNN imputation
-missing_percentage_after = df['age_bucket_imputed'].isnull().mean() * 100
-print(f"Missing percentage in 'age_bucket' after KNN imputation: {missing_percentage_after:.2f}%")
 
 #drop duplicates and high %, except for columns that have missing columns for a reason (example, an empty value in year of demolition means the house is still standing)
 #And drop duplicates
@@ -1048,8 +1036,76 @@ df['WOZ waarde'] = df['WOZ waarde'].apply(lambda x: f"{x:.2f}" if pd.notnull(x) 
 
 #Now its missing 2%
 
- 
-#write to cleaned data
+#KNN for age_bucket
+
+# Encode the categorical features and age_bucket for numeric imputation
+label_encoders = {}
+categorical_features = ['Omschrijving_Vastgoed', 'Eengezins_Meergezins', 'VERA_Type']
+
+for feature in categorical_features:
+    le = LabelEncoder()
+    df[feature] = df[feature].astype(str)  
+    df[feature] = le.fit_transform(df[feature])
+    label_encoders[feature] = le 
+
+# Convert 'age_bucket' to numeric temprorarily
+df['age_bucket_numeric'] = df['age_bucket'].astype('category').cat.codes
+
+# Initialize the KNN Imputer
+knn_imputer = KNNImputer(n_neighbors=5)
+
+# Select features for imputation
+features_for_imputation = ['age_bucket_numeric'] + categorical_features
+
+# Perform KNN imputation on the selected columns
+imputed_array = knn_imputer.fit_transform(df[features_for_imputation])
+
+# Replace the original 'age_bucket_numeric' with the imputed values
+df['age_bucket_numeric'] = imputed_array[:, 0]  # First column corresponds to 'age_bucket_numeric'
+
+# Convert the imputed numeric values back to the original age buckets
+df['age_bucket_imputed'] = df['age_bucket_numeric'].apply(
+    lambda x: age_labels[int(x)] if pd.notnull(x) else x
+)
+
+# Measure the missing % after KNN imputation
+missing_percentage_after = df['age_bucket_imputed'].isnull().mean() * 100
+print(f"Missing percentage in 'age_bucket' after KNN imputation: {missing_percentage_after:.2f}%")
+
+# Optional: Reverse the label encoding for the categorical features
+for feature, le in label_encoders.items():
+    df[feature] = le.inverse_transform(df[feature].astype(int))
+
+#KNN IMPUTATION FOR OTHER FEATURES
+#making features numerical
+df['Mutatiegraad_x']=df['Mutatiegraad_x'].str.replace(',', '.') #dutch use , and not . so i had to replace this for python to recognize it as numerical
+df['Mutatiegraad_y']=df['Mutatiegraad_y'].str.replace(',', '.')
+
+df['Mutatiegraad_x'] = df['Mutatiegraad_x'].astype(float)
+df['Mutatiegraad_y'] = df['Mutatiegraad_y'].astype(float)
+
+label_encoder = LabelEncoder()
+df['Gemeente_encoded'] = label_encoder.fit_transform(df['Gemeente'])
+df['Postcode_encoded'] = label_encoder.fit_transform(df['Postcode'])
+
+# Define features for imputation
+features_x = ['complexnummer', 'Huurobject_x', 'Mutatiegraad_x', 'Gemeente_encoded', 'Postcode_encoded']
+features_y = ['complexnummer', 'Huurobject_x', 'Mutatiegraad_y', 'Gemeente_encoded', 'Postcode_encoded']
+
+# Initialize the KNN Imputer with 5 neighbors
+knn_imputer = KNNImputer(n_neighbors=5)
+
+# Perform KNN imputation on the mutationgrades 
+imputed_df_x = knn_imputer.fit_transform(df[features_x])
+imputed_df_y = knn_imputer.fit_transform(df[features_y])
+
+# Replace missing values in Mutatiegraad_x and Mutatiegraad_y with imputed values
+df['Mutatiegraad_x'] = imputed_df_x[:, 0]  
+df['Mutatiegraad_y'] = imputed_df_y[:, 0]  
+
+
+
+#write changes to cleaned data
 df.to_csv('cleaned_data.csv', index=False)
 cleaned_df =pd.read_csv('cleaned_data.csv')
 

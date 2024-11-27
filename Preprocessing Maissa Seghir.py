@@ -451,7 +451,7 @@ interpret_chi2_results(chi2_results_rand_df)
 #Most categorical features are highly correlated with the target variable, That is good
 #Going to drop low correlation columns 
 
-columns_to_drop = ['Target','Ontvangstdatum_opzegging','Einddatum_contract','Contract_duur','Land','Huurobject', 'Energie_index', 
+columns_to_drop = ['Target','Ontvangstdatum_opzegging','Einddatum_contract','Contract_duur','Land', 'Energie_index', 
     'Marktwaarde', 'Totale punten (afgerond)',
     'Totale punten (onafgerond)','WOZ waarde per m2', 
     'WOZ waarde per m2 (WWS)', 'Woonkamer', 'Markthuur', 'Maximaal_redelijke_huur', 'Streefhuur', 
@@ -461,7 +461,8 @@ columns_to_drop = ['Target','Ontvangstdatum_opzegging','Einddatum_contract','Con
     'avg_contract_duration_per_city', 'avg_contract_duration_per_region', 'rolling_mean_property_value', 
     'Aantal_slaapkamers', 'Aardgasloze_woning','Geen_deelname_energieproject','Contractnummer','VIBDRO_Huurobject_id','Gemeente',
     'Woning_type','VERA_Type','Straat', 'Reden_opzegging','age_at_contract_start','age_bucket','age_bucket_imputed',
-    'df_VIBPOBJREL_INTRENO','df_BUT000_BIRTHDT','Contract_duur flag', 'Contract_starting','Contract_starting_year','contract_year','birth_year'] 
+    'df_VIBPOBJREL_INTRENO','df_BUT000_BIRTHDT','Contract_duur flag', 'Contract_starting','Contract_starting_year','contract_year','birth_year',
+    'Huurobject_y','Complex','VHE'] 
 
 
 pd.set_option('display.max_columns', None)
