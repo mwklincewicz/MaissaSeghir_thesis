@@ -360,8 +360,10 @@ Confusion Matrix:
  [ 460 1021]]
 
   After removing temporal features and adding in new features to mitigate bias:
+
 Random Set - 5-Fold Cross-Validation F1 Scores: [0.61867501 0.62043796 0.61239119 0.61844864 0.63842663]
 Random Set - Mean F1 Score: 0.6216758851844515
+
 Temporal Set - Stratified Time Series Cross-Validation F1 Scores: [0.5909537856440511, 0.5971014492753624, 0.6541196152237557, 0.6460723742277139, 0.6207215541165588]
 Temporal Set - Mean F1 Score: 0.6217937556974884
 

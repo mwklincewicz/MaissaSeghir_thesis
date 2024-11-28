@@ -51,6 +51,10 @@ display_missing_values(unlabeled_data, max_columns=None, max_rows=None)
 #Dropping rows with missing values
 labeled_data = labeled_data.dropna()
 
+# Dropping rows with missing values in unlabeled_data, EXCLUDING the 'Target' column (will need it for feature engineering to keep the amount of columns the same.. even if the result is empty columns)
+unlabeled_data = unlabeled_data[unlabeled_data.drop(columns=['Target']).notna().all(axis=1)]
+
+
 #Doing some feature transformation and dropping columns
 # Transform "Target" into a binary column in labeled data
 labeled_data['Target_binary'] = np.where(labeled_data['Contract_duur'] > 3, 1, 0)
@@ -59,6 +63,9 @@ labeled_data['Target_binary'] = np.where(labeled_data['Contract_duur'] > 3, 1, 0
 labeled_data['Postcode_cijfers'] = labeled_data['Postcode'].str.replace(r'[A-Za-z]', '', regex=True)
 labeled_data = labeled_data.drop(columns=["Postcode"])
 
+unlabeled_data['Postcode_cijfers'] = unlabeled_data['Postcode'].str.replace(r'[A-Za-z]', '', regex=True)
+unlabeled_data = unlabeled_data.drop(columns=["Postcode"])
+
 
 # Convert columns to datetime using .loc to avoid SettingWithCopyWarning
 labeled_data.loc[:, 'Construction'] = pd.to_datetime(labeled_data['Year of construction'])
@@ -66,12 +73,22 @@ labeled_data.loc[:, 'Demolition'] = pd.to_datetime(labeled_data['Year of demolit
 labeled_data.loc[:, 'VABI_finished'] = pd.to_datetime(labeled_data['Amfelddatum_VABI'])
 labeled_data.loc[:, 'Contract_starting'] = pd.to_datetime(labeled_data['Ingangsdatum_contract'])
 
+unlabeled_data.loc[:, 'Construction'] = pd.to_datetime(unlabeled_data['Year of construction'])
+unlabeled_data.loc[:, 'Demolition'] = pd.to_datetime(unlabeled_data['Year of demolition'])
+unlabeled_data.loc[:, 'VABI_finished'] = pd.to_datetime(unlabeled_data['Amfelddatum_VABI'])
+unlabeled_data.loc[:, 'Contract_starting'] = pd.to_datetime(unlabeled_data['Ingangsdatum_contract'])
+
 # Extract year from all datetime columns using .loc to set new columns
 for col in labeled_data.select_dtypes(include=['datetime']).columns:
     labeled_data.loc[:, f'{col}_year'] = labeled_data[col].dt.year
 
+for col in unlabeled_data.select_dtypes(include=['datetime']).columns:
+    unlabeled_data.loc[:, f'{col}_year'] = unlabeled_data[col].dt.year
+
 # Drop the original columns with .loc
 labeled_data.drop(columns=['Year of construction', 'Year of demolition', 'Amfelddatum_VABI', 'Ingangsdatum_contract'], inplace=True)
+
+unlabeled_data.drop(columns=['Year of construction', 'Year of demolition', 'Amfelddatum_VABI', 'Ingangsdatum_contract'], inplace=True)
 
 
 #FEATURES TO BE INCLUDED BEFORE SPLIT
@@ -97,6 +114,32 @@ encoding_map = {
 
 # Apply the encoding 
 labeled_data['Contract_duur_vorige_huurder_encoded'] = labeled_data['Contract_duur_vorige_huurder'].map(encoding_map)
+
+#doing the same for unlabeled data
+unlabeled_data['Totaal_Aantal_Historische_Huurders'] = (
+    unlabeled_data.groupby('VIBDRO_Huurobject_id')['Contractnummer'].transform('nunique')
+)
+
+unlabeled_data = unlabeled_data.sort_values(by=['VIBDRO_Huurobject_id', 'Contract_starting'])
+
+unlabeled_data['Aantal_Historische_Huurders_Vanaf_contractdatum'] = (
+    unlabeled_data.groupby('VIBDRO_Huurobject_id').cumcount() + 1
+)
+
+unlabeled_data['Contract_duur_vorige_huurder'] = (
+    unlabeled_data.groupby('VIBDRO_Huurobject_id')['Target'].shift(1)
+).fillna('n.v.t.')
+
+encoding_map = {
+    'n.v.t.': -1,
+    '<=3': 0,
+    '>3': 1
+}
+
+# Apply the encoding 
+unlabeled_data['Contract_duur_vorige_huurder_encoded'] = labeled_data['Contract_duur_vorige_huurder'].map(encoding_map)
+
+
 
 # TEMPORAL SPLIT AND RANDOM SPLIT
 #I am splitting the data before feature engineering because i want to avoid data leakage, so that new data doesnt influence old data in the temporal split
@@ -306,6 +349,7 @@ validation_data_temp_with_features = feature_engineering(validation_data_temp)
 validation_data_rand_with_features = feature_engineering(validation_data_rand)
 test_data_temp_with_features = feature_engineering(test_data_temp)
 test_data_rand_with_features = feature_engineering(test_data_rand)
+unlabeled_data_with_features = feature_engineering(unlabeled_data)
 
 
 # Function to plot correlation matrix, excluding categorical data that does not correlate numerically
@@ -477,6 +521,7 @@ validation_data_temp_with_features = validation_data_temp_with_features.drop(col
 validation_data_rand_with_features = validation_data_rand_with_features.drop(columns=columns_to_drop)
 test_data_temp_with_features = test_data_temp_with_features.drop(columns=columns_to_drop)
 test_data_rand_with_features = test_data_rand_with_features.drop(columns=columns_to_drop)
+unlabeled_data_with_features = unlabeled_data_with_features.drop(columns=columns_to_drop)
 
 # Extract features (X) and target variable (y)
 X_temp = train_data_temp_with_features.drop(columns=['Target_binary'])
@@ -506,7 +551,7 @@ print(X_test_rand.shape)
 
 
 #Doing this for troubleshooting purposes, as it went wrong earlier 
-for df in [X_temp, X_rand, X_val_temp, X_val_rand, X_test_temp, X_test_rand]:
+for df in [X_temp, X_rand, X_val_temp, X_val_rand, X_test_temp, X_test_rand, unlabeled_data_with_features]:
     for col in df.select_dtypes(include=['datetime64']):
         df[col] = df[col].dt.year
 
@@ -531,6 +576,7 @@ X_val_temp_encoded = encoder.transform(X_val_temp[categorical_cols])
 X_val_rand_encoded = encoder.transform(X_val_rand[categorical_cols])
 X_test_temp_encoded = encoder.transform(X_test_temp[categorical_cols])
 X_test_rand_encoded = encoder.transform(X_test_rand[categorical_cols])
+unlabeled_data_encoded = encoder.transform(unlabeled_data_with_features[categorical_cols])
 
 # turn back into dataframes
 encoded_feature_names = encoder.get_feature_names_out(categorical_cols)
@@ -541,6 +587,7 @@ X_val_temp_encoded_df = pd.DataFrame(X_val_temp_encoded, columns=encoded_feature
 X_val_rand_encoded_df = pd.DataFrame(X_val_rand_encoded, columns=encoded_feature_names)
 X_test_temp_encoded_df = pd.DataFrame(X_test_temp_encoded, columns=encoded_feature_names)
 X_test_rand_encoded_df = pd.DataFrame(X_test_rand_encoded, columns=encoded_feature_names)
+unlabeled_data_encoded_df = pd.DataFrame(unlabeled_data_encoded, columns=encoded_feature_names)
 
 
 # Get non-categorical columns
@@ -553,6 +600,7 @@ X_val_temp_encoded_df = pd.concat([X_val_temp_encoded_df, X_val_temp[non_categor
 X_val_rand_encoded_df = pd.concat([X_val_rand_encoded_df, X_val_rand[non_categorical_cols].reset_index(drop=True)], axis=1)
 X_test_temp_encoded_df = pd.concat([X_test_temp_encoded_df, X_test_temp[non_categorical_cols].reset_index(drop=True)], axis=1)
 X_test_rand_encoded_df = pd.concat([X_test_rand_encoded_df, X_test_rand[non_categorical_cols].reset_index(drop=True)], axis=1)
+unlabeled_data_encoded_df = pd.concat([unlabeled_data_encoded_df, unlabeled_data_with_features[non_categorical_cols].reset_index(drop=True)], axis=1)
 
 print("Shapes after encoding:")
 print("X_temp_encoded shape:", X_temp_encoded_df.shape)
@@ -561,9 +609,9 @@ print("X_val_temp_encoded shape:", X_val_temp_encoded_df.shape)
 print("X_val_rand_encoded shape:", X_val_rand_encoded_df.shape)
 print("X_test_temp_encoded shape:", X_test_temp_encoded_df.shape)
 print("X_test_rand_encoded shape:", X_test_rand_encoded_df.shape)
+print("Unlabaled data shape:",unlabeled_data_encoded_df.shape)
 
 
-# Save the balanced temporal split for the next step
 # Save the training, validation, and test datasets for temporal split
 X_temp_encoded_df.to_csv('X_train_temp.csv', index=False)
 y_temp.to_csv('y_train_temp.csv', index=False)
@@ -579,3 +627,6 @@ X_val_rand_encoded_df.to_csv('X_val_rand.csv', index=False)
 y_val_rand.to_csv('y_val_rand.csv', index=False)
 X_test_rand_encoded_df.to_csv('X_test_rand.csv', index=False)
 y_test_rand.to_csv('y_test_rand.csv', index=False)
+
+#save the unlabeled dataset with preprocessing steps for the SSL experiment
+unlabeled_data_encoded_df.to_csv('unlabeled_data_encoded_df.csv', index=False)
