@@ -347,59 +347,58 @@ Confusion Matrix:
  [ 641  840]]
  
  After removing temporal features and adding in new features to mitigate bias:
+Temporal Set - Stratified Time Series Cross-Validation F1 Scores: [0.5608465608465608, 0.5539051269765214, 0.5913200723327305, 0.5695792880258899, 0.5707547169811322]
+Temporal Set - Mean F1 Score: 0.569281153032567
 
- Temporal Set - Stratified Time Series Cross-Validation F1 Scores: [0.5615062761506276, 0.5540098199672667, 0.5811119573495812, 0.591820987654321, 0.588141663350577]
-Temporal Set - Mean F1 Score: 0.5753181408944747
-
-Random Set - 5-Fold Cross-Validation F1 Scores: [0.57866184 0.56736939 0.57348963 0.56998158 0.57581395]
-Random Set - Mean F1 Score: 0.573063279589763
+Random Set - 5-Fold Cross-Validation F1 Scores: [0.57455683 0.54384134 0.55520833 0.56639004 0.57113402]
+Random Set - Mean F1 Score: 0.5622261123187717
 
 Fitting 5 folds for each of 90 candidates, totalling 450 fits
-Best Parameters (Random Set): {'criterion': 'gini', 'max_depth': 5, 'min_samples_leaf': 1, 'min_samples_split': 2}
-Best F1 Score (Random Set): 0.5386569563006672
+Best Parameters (Random Set): {'criterion': 'entropy', 'max_depth': 5, 'min_samples_leaf': 1, 'min_samples_split': 2}
+Best F1 Score (Random Set): 0.5001368250008749
 
 Fitting 5 folds for each of 90 candidates, totalling 450 fits
 Best Parameters (Temporal Set): {'criterion': 'entropy', 'max_depth': 5, 'min_samples_leaf': 1, 'min_samples_split': 2}
-Best F1 Score (Temporal Set): 0.6863227263633795
+Best F1 Score (Temporal Set): 0.6775858458595563
 
 Validation Metrics (Random Set):
-Accuracy: 0.6667489508763268
-Precision: 0.6271551724137931
-Recall: 0.6388583973655324
-F1-Score: 0.632952691680261
-AUC-ROC: 0.7167641985030181
+Accuracy: 0.6568276684555754
+Precision: 0.6201634877384197
+Recall: 0.714824120603015
+F1-Score: 0.6641377297928217
+AUC-ROC: 0.7085291668330301
 Confusion Matrix:
-[[1537  692]
- [ 658 1164]]
+[[1065  697]
+ [ 454 1138]]
 
 Validation Metrics (Temporal Set):
-Accuracy: 0.6363860775117255
-Precision: 0.47780979827089337
-Recall: 0.5938395415472779
-F1-Score: 0.529543276908336
-AUC-ROC: 0.6911989596317701
+Accuracy: 0.6666666666666666
+Precision: 0.5565058032987171
+Recall: 0.6991557943207981
+F1-Score: 0.6197278911564627
+AUC-ROC: 0.7279248690248248
 Confusion Matrix:
-[[1749  906]
- [ 567  829]]
+[[1325  726]
+ [ 392  911]]
 
 Test Metrics (Random Set):
-Accuracy: 0.6637867193285608
-Precision: 0.638390092879257
-Recall: 0.5699281370923162
-F1-Score: 0.6022196261682242
-AUC-ROC: 0.7179149105301129
+Accuracy: 0.6419200954084675
+Precision: 0.5867117117117117
+Recall: 0.6905235255135852
+F1-Score: 0.6343987823439878
+AUC-ROC: 0.7015965633480059
 Confusion Matrix:
-[[1658  584]
- [ 778 1031]]
+[[1111  734]
+ [ 467 1042]]
 
 Test Metrics (Temporal Set):
-Accuracy: 0.725253023944705
-Precision: 0.674364896073903
-Recall: 0.4127208480565371
-F1-Score: 0.5120561157387111
-AUC-ROC: 0.7593895612261861
+Accuracy: 0.6976744186046512
+Precision: 0.6524886877828054
+Recall: 0.533678756476684
+F1-Score: 0.5871335504885994
+AUC-ROC: 0.7523647910813277
 Confusion Matrix:
-[[2354  282]
- [ 831  584]]
+[[1619  384]
+ [ 630  721]]
 
 """

@@ -360,59 +360,60 @@ Confusion Matrix:
  [ 460 1021]]
 
   After removing temporal features and adding in new features to mitigate bias:
-  Random Set - 5-Fold Cross-Validation F1 Scores: [0.6519982  0.63719234 0.63466667 0.62957812 0.6537931 ]
-Random Set - Mean F1 Score: 0.6414456868971492
-Temporal Set - Stratified Time Series Cross-Validation F1 Scores: [0.6094698502630513, 0.5918032786885246, 0.6626248216833096, 0.6671592168452162, 0.6362608367885413]
-Temporal Set - Mean F1 Score: 0.6334636008537287
+Random Set - 5-Fold Cross-Validation F1 Scores: [0.61867501 0.62043796 0.61239119 0.61844864 0.63842663]
+Random Set - Mean F1 Score: 0.6216758851844515
+Temporal Set - Stratified Time Series Cross-Validation F1 Scores: [0.5909537856440511, 0.5971014492753624, 0.6541196152237557, 0.6460723742277139, 0.6207215541165588]
+Temporal Set - Mean F1 Score: 0.6217937556974884
 
 Fitting RandomizedSearchCV for Random Set...
 Fitting 5 folds for each of 50 candidates, totalling 250 fits
-Best Parameters (Random Set): {'subsample': 0.4, 'n_estimators': 270, 'min_child_weight': 7, 'max_depth': 10, 'learning_rate': 0.01, 'gamma': 0.4, 'colsample_bytree': 0.4}
-Best F1 Score (Random Set): 0.4986414361435735
+Best Parameters (Random Set): {'subsample': 0.4, 'n_estimators': 200, 'min_child_weight': 3, 'max_depth': 7, 'learning_rate': 0.01, 'gamma': 0, 'colsample_bytree': 0.4}
+Best F1 Score (Random Set): 0.48780221639024884
 
 Fitting RandomizedSearchCV for Temporal Set...
 Fitting 5 folds for each of 50 candidates, totalling 250 fits
-Best Parameters (Temporal Set): {'subsample': 0.7, 'n_estimators': 170, 'min_child_weight': 7, 'max_depth': 12, 'learning_rate': 0.01, 'gamma': 0.5, 'colsample_bytree': 0.6}
-Best F1 Score (Temporal Set): 0.6595490726667338
+Best Parameters (Temporal Set): {'subsample': 0.4, 'n_estimators': 200, 'min_child_weight': 3, 'max_depth': 7, 'learning_rate': 0.01, 'gamma': 0, 'colsample_bytree': 0.4}
+Best F1 Score (Temporal Set): 0.6594620380425328
 
 Validation Metrics (Random Set):
-Accuracy: 0.6736608244877808
-Precision: 0.6440092165898618
-Recall: 0.6136114160263447
-F1-Score: 0.628442945474986
-AUC-ROC: 0.6681785209337645
+Accuracy: 0.663387000596303
+Precision: 0.6428130783466995
+Recall: 0.6545226130653267
+F1-Score: 0.648615001556178
+AUC-ROC: 0.6629593769072376
 Confusion Matrix (Random Set):
-[[1611  618]
- [ 704 1118]]
+[[1183  579]
+ [ 550 1042]]
 
 Validation Metrics (Temporal Set):
-Accuracy: 0.6711922981979758
-Precision: 0.5199750312109863
-Recall: 0.5967048710601719
-F1-Score: 0.5557038025350234
-AUC-ROC: 0.6535313432513665
+Accuracy: 0.6812760882528325
+Precision: 0.5788409703504043
+Recall: 0.659247889485802
+F1-Score: 0.6164334409759599
+AUC-ROC: 0.6772592445966308
 Confusion Matrix (Temporal Set):
-[[1886  769]
- [ 563  833]]
+[[1426  625]
+ [ 444  859]]
 
 Test Metrics (Random Set - XGBoost):
-Accuracy: 0.6825475191310787
-Precision: 0.6488332384746728
-Recall: 0.6301824212271974
-F1-Score: 0.6393718452047111
-AUC-ROC: 0.7469613721461086
+Accuracy: 0.6535480023852117
+Precision: 0.6091881686595343
+Recall: 0.6414844267726971
+F1-Score: 0.6249193027759845
+AUC-ROC: 0.7150434340658848
 Confusion Matrix:
-[[1625  617]
- [ 669 1140]]
+[[1224  621]
+ [ 541  968]]
 
 Test Metrics (Temporal Set - XGBoost):
-Accuracy: 0.7635151814366823
-Precision: 0.7324516785350966
-Recall: 0.508833922261484
-F1-Score: 0.6005004170141784
-AUC-ROC: 0.8171356643806602
+Accuracy: 0.7152653548002386
+Precision: 0.6892925430210325
+Recall: 0.533678756476684
+F1-Score: 0.6015853149770546
+AUC-ROC: 0.7802864541086224
 Confusion Matrix:
-[[2373  263]
- [ 695  720]]
+[[1678  325]
+ [ 630  721]]
+
  
  """
