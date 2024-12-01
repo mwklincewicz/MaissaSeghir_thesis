@@ -115,6 +115,55 @@ encoding_map = {
 # Apply the encoding 
 labeled_data['Contract_duur_vorige_huurder_encoded'] = labeled_data['Contract_duur_vorige_huurder'].map(encoding_map)
 
+# Feature: Total historical tenants with Target <= 3
+labeled_data['Totaal_aantal_historisch_huurders_kort'] = (
+    labeled_data[labeled_data['Target'] <= 3]
+    .groupby('VIBDRO_Huurobject_id')['Contractnummer']
+    .transform('nunique')
+)
+
+# Feature: Total historical tenants with Target > 3
+labeled_data['Totaal_aantal_historisch_huurders_lang'] = (
+    labeled_data[labeled_data['Target'] > 3]
+    .groupby('VIBDRO_Huurobject_id')['Contractnummer']
+    .transform('nunique')
+)
+
+# Fill NaN values with 0 for cases where no tenants match the condition
+labeled_data['Totaal_aantal_historisch_huurders_kort'] = labeled_data['Totaal_aantal_historisch_huurders_kort'].fillna(0)
+labeled_data['Totaal_aantal_historisch_huurders_lang'] = labeled_data['Totaal_aantal_historisch_huurders_lang'].fillna(0)
+
+# Proportion of short contracts (Target <= 3)
+labeled_data['Proportie_historisch_huurders_kort'] = (
+    labeled_data['Totaal_aantal_historisch_huurders_kort'] / labeled_data['Totaal_aantal_historisch_huurders']
+)
+
+# Proportion of long contracts (Target > 3)
+labeled_data['Proportie_historisch_huurders_lang'] = (
+    labeled_data['Totaal_aantal_historisch_huurders_lang'] / labeled_data['Totaal_aantal_historisch_huurders']
+)
+
+# Handle division by zero: if there are no historical contracts, set proportions to 0
+labeled_data['Proportie_historisch_huurders_kort'] = labeled_data['Proportie_historisch_huurders_kort'].fillna(0)
+labeled_data['Proportie_historisch_huurders_lang'] = labeled_data['Proportie_historisch_huurders_lang'].fillna(0)
+
+labeled_data['kort_Lang_Ratio'] = (
+    labeled_data['Totaal_aantal_historisch_huurders_kort'] / 
+    (labeled_data['Totaal_aantal_historisch_huurders_lang'] + 1e-9)  # Adding this very small value to avoid division by zero
+)
+
+labeled_data['Lang_Kort_Ratio'] = (
+    labeled_data['Totaal_aantal_historisch_huurders_lang'] / 
+    (labeled_data['Totaal_aantal_historisch_huurders_kort'] + 1e-9) #doing the same here
+)
+
+# Huurdersomloopsnelheid (Turnover Rate)
+labeled_data['Huurdersomloopsnelheid'] = (
+    labeled_data['Totaal_Aantal_Historische_Huurders'] /
+    labeled_data['Huis_leeftijd']
+).replace([float('inf'), -float('inf')], 0).fillna(0)
+
+
 #doing the same for unlabeled data
 unlabeled_data['Totaal_Aantal_Historische_Huurders'] = (
     unlabeled_data.groupby('VIBDRO_Huurobject_id')['Contractnummer'].transform('nunique')
@@ -137,9 +186,55 @@ encoding_map = {
 }
 
 # Apply the encoding 
-unlabeled_data['Contract_duur_vorige_huurder_encoded'] = labeled_data['Contract_duur_vorige_huurder'].map(encoding_map)
+unlabeled_data['Contract_duur_vorige_huurder_encoded'] = unlabeled_data['Contract_duur_vorige_huurder'].map(encoding_map)
 
+# Feature: Total historical tenants with Target <= 3
+unlabeled_data['Totaal_aantal_historisch_huurders_kort'] = (
+    unlabeled_data[unlabeled_data['Target'] <= 3]
+    .groupby('VIBDRO_Huurobject_id')['Contractnummer']
+    .transform('nunique')
+)
 
+# Feature: Total historical tenants with Target > 3
+unlabeled_data['Totaal_aantal_historisch_huurders_lang'] = (
+    unlabeled_data[unlabeled_data['Target'] > 3]
+    .groupby('VIBDRO_Huurobject_id')['Contractnummer']
+    .transform('nunique')
+)
+
+# Fill NaN values with 0 for cases where no tenants match the condition
+unlabeled_data['Totaal_aantal_historisch_huurders_kort'] = unlabeled_data['Totaal_aantal_historisch_huurders_kort'].fillna(0)
+unlabeled_data['Totaal_aantal_historisch_huurders_lang'] = unlabeled_data['Totaal_aantal_historisch_huurders_lang'].fillna(0)
+
+# Proportion of short contracts (Target <= 3)
+unlabeled_data['Proportie_historisch_huurders_kort'] = (
+    unlabeled_data['Totaal_aantal_historisch_huurders_kort'] / unlabeled_data['Totaal_aantal_historisch_huurders']
+)
+
+# Proportion of long contracts (Target > 3)
+unlabeled_data['Proportie_historisch_huurders_lang'] = (
+    unlabeled_data['Totaal_aantal_historisch_huurders_lang'] / unlabeled_data['Totaal_aantal_historisch_huurders']
+)
+
+# Handle division by zero: if there are no historical contracts, set proportions to 0
+unlabeled_data['Proportie_historisch_huurders_kort'] = unlabeled_data['Proportie_historisch_huurders_kort'].fillna(0)
+unlabeled_data['Proportie_historisch_huurders_lang'] = unlabeled_data['Proportie_historisch_huurders_lang'].fillna(0)
+
+unlabeled_data['Kort_Lang_Ratio'] = (
+    unlabeled_data['Totaal_aantal_historisch_huurders_kort'] / 
+    (unlabeled_data['Totaal_aantal_historisch_huurders_lang'] + 1e-9)  # Adding this very small value to avoid division by zero
+)
+
+unlabeled_data['Lang_Kort_Ratio'] = (
+    unlabeled_data['Totaal_aantal_historisch_huurders_lang'] / 
+    (unlabeled_data['Totaal_aantal_historisch_huurders_kort'] + 1e-9) #doing the same here
+)
+
+# Huurdersomloopsnelheid (Turnover Rate)
+unlabeled_data['Huurdersomloopsnelheid'] = (
+    unlabeled_data['Totaal_Aantal_Historische_Huurders'] /
+    unlabeled_data['Huis_leeftijd']
+).replace([float('inf'), -float('inf')], 0).fillna(0)
 
 # TEMPORAL SPLIT AND RANDOM SPLIT
 #I am splitting the data before feature engineering because i want to avoid data leakage, so that new data doesnt influence old data in the temporal split
