@@ -117,14 +117,14 @@ labeled_data['Contract_duur_vorige_huurder_encoded'] = labeled_data['Contract_du
 
 # Feature: Total historical tenants with Target <= 3
 labeled_data['Totaal_aantal_historisch_huurders_kort'] = (
-    labeled_data[labeled_data['Target'] <= 3]
+    labeled_data[labeled_data['Target'] == '<= 3' ]
     .groupby('VIBDRO_Huurobject_id')['Contractnummer']
     .transform('nunique')
 )
 
 # Feature: Total historical tenants with Target > 3
 labeled_data['Totaal_aantal_historisch_huurders_lang'] = (
-    labeled_data[labeled_data['Target'] > 3]
+    labeled_data[labeled_data['Target'] == '> 3' ]
     .groupby('VIBDRO_Huurobject_id')['Contractnummer']
     .transform('nunique')
 )
@@ -135,19 +135,19 @@ labeled_data['Totaal_aantal_historisch_huurders_lang'] = labeled_data['Totaal_aa
 
 # Proportion of short contracts (Target <= 3)
 labeled_data['Proportie_historisch_huurders_kort'] = (
-    labeled_data['Totaal_aantal_historisch_huurders_kort'] / labeled_data['Totaal_aantal_historisch_huurders']
+    labeled_data['Totaal_aantal_historisch_huurders_kort'] / labeled_data['Totaal_Aantal_Historische_Huurders']
 )
 
 # Proportion of long contracts (Target > 3)
 labeled_data['Proportie_historisch_huurders_lang'] = (
-    labeled_data['Totaal_aantal_historisch_huurders_lang'] / labeled_data['Totaal_aantal_historisch_huurders']
+    labeled_data['Totaal_aantal_historisch_huurders_lang'] / labeled_data['Totaal_Aantal_Historische_Huurders']
 )
 
 # Handle division by zero: if there are no historical contracts, set proportions to 0
 labeled_data['Proportie_historisch_huurders_kort'] = labeled_data['Proportie_historisch_huurders_kort'].fillna(0)
 labeled_data['Proportie_historisch_huurders_lang'] = labeled_data['Proportie_historisch_huurders_lang'].fillna(0)
 
-labeled_data['kort_Lang_Ratio'] = (
+labeled_data['Kort_Lang_Ratio'] = (
     labeled_data['Totaal_aantal_historisch_huurders_kort'] / 
     (labeled_data['Totaal_aantal_historisch_huurders_lang'] + 1e-9)  # Adding this very small value to avoid division by zero
 )
@@ -190,14 +190,14 @@ unlabeled_data['Contract_duur_vorige_huurder_encoded'] = unlabeled_data['Contrac
 
 # Feature: Total historical tenants with Target <= 3
 unlabeled_data['Totaal_aantal_historisch_huurders_kort'] = (
-    unlabeled_data[unlabeled_data['Target'] <= 3]
+    unlabeled_data[unlabeled_data['Target'] == '<= 3']
     .groupby('VIBDRO_Huurobject_id')['Contractnummer']
     .transform('nunique')
 )
 
 # Feature: Total historical tenants with Target > 3
 unlabeled_data['Totaal_aantal_historisch_huurders_lang'] = (
-    unlabeled_data[unlabeled_data['Target'] > 3]
+    unlabeled_data[unlabeled_data['Target'] == '> 3']
     .groupby('VIBDRO_Huurobject_id')['Contractnummer']
     .transform('nunique')
 )
@@ -208,12 +208,12 @@ unlabeled_data['Totaal_aantal_historisch_huurders_lang'] = unlabeled_data['Totaa
 
 # Proportion of short contracts (Target <= 3)
 unlabeled_data['Proportie_historisch_huurders_kort'] = (
-    unlabeled_data['Totaal_aantal_historisch_huurders_kort'] / unlabeled_data['Totaal_aantal_historisch_huurders']
+    unlabeled_data['Totaal_aantal_historisch_huurders_kort'] / unlabeled_data['Totaal_Aantal_Historische_Huurders']
 )
 
 # Proportion of long contracts (Target > 3)
 unlabeled_data['Proportie_historisch_huurders_lang'] = (
-    unlabeled_data['Totaal_aantal_historisch_huurders_lang'] / unlabeled_data['Totaal_aantal_historisch_huurders']
+    unlabeled_data['Totaal_aantal_historisch_huurders_lang'] / unlabeled_data['Totaal_Aantal_Historische_Huurders']
 )
 
 # Handle division by zero: if there are no historical contracts, set proportions to 0
