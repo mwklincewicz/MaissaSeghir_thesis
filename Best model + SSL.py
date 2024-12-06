@@ -114,7 +114,7 @@ print("\nFitting RandomizedSearchCV for Temporal Set...")
 random_search_temp = RandomizedSearchCV(
     estimator=xgb_model,
     param_distributions=param_dist,
-    n_iter=50,
+    n_iter= 50,
     scoring='f1',
     cv=5,
     verbose=1,
@@ -199,7 +199,7 @@ y_train_pseudo = pd.concat([y_train_val_temp['Target_binary'], pd.Series(pseudo_
 
 
 # Train a new XGBoost model on the combined data with pseudo-labels
-final_model_ssl_xgb = XGBClassifier(**random_search_temp.best_params_,scale_pos_weight=1.5, random_state=777, eval_metric='logloss')
+final_model_ssl_xgb = XGBClassifier(**random_search_temp.best_params_,scale_pos_weight=1.5, random_state=777, eval_metric='logloss') #change the weight to 1.4 to attempt to imrpove recall  while maintaining other parameters
 final_model_ssl_xgb.fit(X_train_pseudo, y_train_pseudo)
 
 # Test Set Evaluation for the SSL model
