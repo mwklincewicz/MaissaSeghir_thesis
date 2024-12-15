@@ -42,6 +42,7 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 from sklearn.inspection import permutation_importance
 from sklearn.semi_supervised import LabelPropagation
+import graphviz
 
 # Load the balanced temporal training and validation datasets
 X_temp_balanced = pd.read_csv('X_train_temp.csv')
@@ -52,7 +53,7 @@ X_test_temp = pd.read_csv('X_test_temp.csv')
 y_test_temp = pd.read_csv('y_test_temp.csv')
 
 
-#load the unlabaled dataset
+#load the unlabeled dataset
 unlabeled_data_encoded_df = pd.read_csv('unlabeled_data_encoded_df.csv')
 
 
@@ -69,8 +70,8 @@ def stratified_time_series_split(X, y, n_splits=5):
 
     # Generate the indices for stratified time-series split
     for train_index, val_index in stratified_kfold.split(X, y):
-        # Ensure we maintain the temporal order
-        # You can slice the indices based on time (first train, then test)
+        # Ensure the maintainance of the temporal order
+        #slice the indices based on time (first train, then test)
         indices.append((train_index, val_index))
         
     return indices
@@ -218,3 +219,6 @@ print(f"Recall: {test_ssl_recall_xgb}")
 print(f"F1-Score: {test_ssl_f1_xgb}")
 print(f"AUC-ROC: {test_ssl_roc_auc_xgb}")
 print(f"Confusion Matrix:\n{test_ssl_conf_matrix_xgb}")
+
+
+

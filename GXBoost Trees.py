@@ -46,8 +46,8 @@ def stratified_time_series_split(X, y, n_splits=5):
 
     # Generate the indices for stratified time-series split
     for train_index, val_index in stratified_kfold.split(X, y):
-        # Ensure we maintain the temporal order
-        # You can slice the indices based on time (first train, then test)
+        # Ensure the maintainance in the temporal order
+        #slice the indices based on time (first train, then test)
         indices.append((train_index, val_index))
         
     return indices
@@ -76,6 +76,7 @@ print("Temporal Set - Mean F1 Score:", np.mean(temporal_cv_scores))
 
 # Hyperparameter distribution for RandomizedSearchCV
 param_dist = {
+    'objective': ['binary:logistic'],
     'n_estimators': [150, 170, 200, 250, 270],
     'max_depth': [ 7, 10, 12, 15, 20],
     'learning_rate': [0.01, 0.05, 0.1, 0.15, 0.2],

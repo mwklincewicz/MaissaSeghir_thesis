@@ -43,13 +43,12 @@ def display_missing_values(df, max_columns=None, max_rows=None):
     
     print(missing_value_percentages)
 
+display_missing_values(df,max_columns=None, max_rows=None)
 print(f"Missing data % in labeled data:")
 display_missing_values(labeled_data, max_columns=None, max_rows=None)
 print(f"Missing data % in unlabeled data:")
 display_missing_values(unlabeled_data, max_columns=None, max_rows=None)
 
-#Dropping rows with missing values
-labeled_data = labeled_data.dropna()
 
 # Dropping rows with missing values in unlabeled_data, EXCLUDING the 'Target' column (will need it for feature engineering to keep the amount of columns the same.. even if the result is empty columns)
 unlabeled_data = unlabeled_data[unlabeled_data.drop(columns=['Target']).notna().all(axis=1)]
@@ -58,6 +57,33 @@ unlabeled_data = unlabeled_data[unlabeled_data.drop(columns=['Target']).notna().
 #Doing some feature transformation and dropping columns
 # Transform "Target" into a binary column in labeled data
 labeled_data['Target_binary'] = np.where(labeled_data['Contract_duur'] > 3, 1, 0)
+
+#Dropping rows with missing values
+labeled_data = labeled_data.dropna()
+
+# Function to plot correlation matrix, excluding categorical data that does not correlate numerically
+def plot_correlation_matrix(df, title):
+    plt.figure(figsize=(24, 20))
+    
+    # Selecting only numeric columns for correlation calculation in the plot
+    numeric_df = df.select_dtypes(include=['number'])
+    corr_matrix = numeric_df.corr()
+    
+    # Focus only on the correlation with target variable
+    if 'Target_binary' in corr_matrix.columns:
+        target_corr = corr_matrix[['Target_binary']].sort_values(by='Target_binary', ascending=False)
+        
+        # Plot the heatmap
+        sns.heatmap(target_corr, annot=True, cmap='coolwarm', vmin=-1, vmax=1)
+        plt.title(title)
+        plt.show()
+    else:
+        print("'Target_binary' not found in the correlation matrix.")
+
+
+
+print("Overal correlation")
+plot_correlation_matrix(labeled_data, "Correlation with Binary Target")
 
 #Removing letters from postal code, this loses some of its granularity but it's still more precise then a city name, also more precise than a region
 labeled_data['Postcode_cijfers'] = labeled_data['Postcode'].str.replace(r'[A-Za-z]', '', regex=True)
@@ -449,7 +475,7 @@ unlabeled_data_with_features = feature_engineering(unlabeled_data)
 
 # Function to plot correlation matrix, excluding categorical data that does not correlate numerically
 def plot_correlation_matrix(df, title):
-    plt.figure(figsize=(12, 10))
+    plt.figure(figsize=(24, 20))
     
     # Selecting only numeric columns for correlation calculation in the plot
     numeric_df = df.select_dtypes(include=['number'])
@@ -472,6 +498,9 @@ plot_correlation_matrix(train_data_temp_with_features, "Correlation with Target 
 
 print("Correlation Matrix for Random Training Set")
 plot_correlation_matrix(train_data_rand_with_features, "Correlation with Target - Random Training Set")
+
+print("Overal correlation")
+plot_correlation_matrix(labeled_data, "Correlation with Target - Random Training Set")
 
 #House age high higest corr in the random split but not high corr in the temporal split
 #Which means the temporal split managed to get out some of the temporal bias in the data

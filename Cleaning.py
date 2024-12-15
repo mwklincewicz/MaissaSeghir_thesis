@@ -128,12 +128,12 @@ def display_missing_values(df, max_columns=None, max_rows=None):
     
     print(missing_value_percentages)
 
-#print(display_missing_values(df, max_columns=None, max_rows=None)) #remove hashtag if you want to see this code. 
+print(display_missing_values(df, max_columns=None, max_rows=None)) #remove hashtag if you want to see this code. 
 
 #--- TARGET VARIABLE ---
 
 #making my binary target variable
-df['Target'] = df['Contract_duur'].apply(lambda x: '<=3' if x <= 3 else '>3' if pd.notnull(x) else '')
+df['Target'] = df['Contract_duur'].apply(lambda x: '<=3' if x <= 3 else '>3' if pd.notnull(x) else np.nan)
 
 #---TEMPORAL BIAS ANALYSIS ---
 
@@ -228,6 +228,10 @@ counts_after_2010 = df_after_2010['Target'].value_counts()
 
 print(f"\nCounts of each class in contracts before 2010:\n{counts_before_2010}")
 print(f"\nCounts of each class in contracts after 2010:\n{counts_after_2010}")
+
+print("\nOverall Class Balance in the Entire Dataset:")
+overall_class_balance = df['Target'].value_counts(normalize=True) * 100
+print(overall_class_balance)
 
 # Calculate the percentage of missing values in the birthdate column for contracts after 2010, because this will be an important feature
 missing_birthdt_after_2010 = df_after_2010['df_BUT000_BIRTHDT'].isnull().sum()

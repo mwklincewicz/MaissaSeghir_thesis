@@ -39,8 +39,8 @@ def stratified_time_series_split(X, y, n_splits=5):
 
     # Generate the indices for stratified time-series split
     for train_index, val_index in stratified_kfold.split(X, y):
-        # Ensure we maintain the temporal order
-        # You can slice the indices based on time (first train, then test)
+        # Ensure the maintainance of the temporal order
+        # slice the indices based on time (first train, then test)
         indices.append((train_index, val_index))
         
     return indices
