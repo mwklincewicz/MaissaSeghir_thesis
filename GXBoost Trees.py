@@ -7,6 +7,7 @@ from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_sc
 import seaborn as sns
 import matplotlib.pyplot as plt
 from sklearn.inspection import permutation_importance
+import optuna
 
 # Load the balanced temporal training and validation datasets
 X_temp_balanced = pd.read_csv('X_train_temp.csv')
