@@ -88,6 +88,7 @@ def objective(trial):
     }
     model = XGBClassifier(**param, random_state=777, eval_metric='logloss')
     cv_scores = cross_val_score(model, X_rand_balanced, y_rand_balanced, cv=kf, scoring='f1')
+
     return np.mean(cv_scores)
 
 # Optimize hyperparameters for the Random Set
@@ -620,7 +621,7 @@ Confusion Matrix:
 
  Baysian optimization instead of random search:
 
-PS C:\Users\msegh\MaissaSeghir_thesis> & C:/Users/msegh/AppData/Local/Microsoft/WindowsApps/python3.10.exe "c:/Users/msegh/MaissaSeghir_thesis/GXBoost Trees.py"
+
 Random Set - 5-Fold Cross-Validation F1 Scores: [0.62655602 0.62668046 0.61182519 0.61363636 0.63631765]
 Random Set - Mean F1 Score: 0.6230031362122106
 

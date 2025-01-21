@@ -243,12 +243,12 @@ plt.show()
 # Visualization of Optimization History
 plt.figure(figsize=(10, 6))
 optuna.visualization.matplotlib.plot_optimization_history(study_rand)
-plt.title('Optimization History DT (Random Set)')
+plt.title('Optimization History DT without proxies (Random Set)')
 plt.show()
 
 plt.figure(figsize=(10, 6))
 optuna.visualization.matplotlib.plot_optimization_history(study_temp)
-plt.title('Optimization History DT (Temporal Set)')
+plt.title('Optimization History DT without proxies (Temporal Set)')
 plt.show()
 
 # FINAL EVALUATION ON THE TEST SET

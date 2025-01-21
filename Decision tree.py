@@ -63,6 +63,10 @@ def objective(trial):
     kf = KFold(n_splits=5, shuffle=True, random_state=777)
     f1_scores = cross_val_score(model, X_rand_balanced, y_rand_balanced, cv=kf, scoring='f1')
 
+    # Print the F1 scores for each fold
+    print(f"F1 scores across folds (Random Set): {f1_scores}")
+    print(f"Mean F1 score (Random Set): {np.mean(f1_scores)}")
+
     # Return the mean F1 score as the objective to minimize
     return np.mean(f1_scores)
 
@@ -97,6 +101,10 @@ def objective_temp(trial):
         model.fit(X_train, y_train)
         y_pred = model.predict(X_val)
         f1_scores.append(f1_score(y_val, y_pred))
+    
+    # Print the F1 scores for each fold
+    print(f"F1 scores across folds (Temporal Set): {f1_scores}")
+    print(f"Mean F1 score (Temporal Set): {np.mean(f1_scores)}")
 
     return np.mean(f1_scores)
 
@@ -427,7 +435,9 @@ Confusion Matrix:
  [ 630  721]]
 
  Bayesian modelling instead of grid search:
-PS C:\Users\msegh\MaissaSeghir_thesis> & C:/Users/msegh/AppData/Local/Microsoft/WindowsApps/python3.10.exe "c:/Users/msegh/MaissaSeghir_thesis/Decision tree.py"
+F1 scores across folds (Random Set): [0.65746673 0.67562189 0.66602223 0.67431193 0.65994236]
+Mean F1 score (Random Set): 0.6666730291216855
+
 [I 2025-01-18 14:38:13,266] A new study created in memory with name: Random Set Optimization
 [I 2025-01-18 14:38:13,906] Trial 3 finished with value: 0.6666730291216855 and parameters: {'criterion': 'entropy', 'max_depth': 2, 'min_samples_split': 3, 'min_samples_leaf': 19}. Best is trial 3 with value: 0.6666730291216855.
 [I 2025-01-18 14:38:13,960] Trial 2 finished with value: 0.6666730291216855 and parameters: {'criterion': 'entropy', 'max_depth': 2, 'min_samples_split': 2, 'min_samples_leaf': 12}. Best is trial 3 with value: 0.6666730291216855.
@@ -481,6 +491,9 @@ PS C:\Users\msegh\MaissaSeghir_thesis> & C:/Users/msegh/AppData/Local/Microsoft/
 [I 2025-01-18 14:38:32,431] Trial 48 finished with value: 0.596713734251351 and parameters: {'criterion': 'entropy', 'max_depth': 20, 'min_samples_split': 5, 'min_samples_leaf': 19}. Best is trial 3 with value: 0.6666730291216855.
 Best Parameters (Random Set): {'criterion': 'entropy', 'max_depth': 2, 'min_samples_split': 3, 'min_samples_leaf': 19}
 Best F1 Score (Random Set): 0.6666730291216855
+
+F1 scores across folds (Temporal Set): [0.6214797136038186, 0.6717971933001358, 0.6889714993804213, 0.6762956669498726, 0.6727423363711682]
+Mean F1 score (Temporal Set): 0.6662572819210834
 [I 2025-01-18 14:38:32,432] A new study created in memory with name: Temporal Set Optimization
 [I 2025-01-18 14:38:33,741] Trial 0 finished with value: 0.6621871625198167 and parameters: {'criterion': 'gini', 'max_depth': 7, 'min_samples_split': 18, 'min_samples_leaf': 20}. Best is trial 0 with value: 0.6621871625198167.
 [I 2025-01-18 14:38:34,401] Trial 3 finished with value: 0.604796486846391 and parameters: {'criterion': 'gini', 'max_depth': 13, 'min_samples_split': 16, 'min_samples_leaf': 20}. Best is trial 0 with value: 0.6621871625198167.
