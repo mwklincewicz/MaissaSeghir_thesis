@@ -91,6 +91,10 @@ def objective(trial):
     kf = KFold(n_splits=5, shuffle=True, random_state=777)
     f1_scores = cross_val_score(model, X_rand_balanced, y_rand_balanced, cv=kf, scoring='f1')
 
+    # Print the F1 scores for each fold
+    print(f"F1 scores across folds (Random Set): {f1_scores}")
+    print(f"Mean F1 score (Random Set): {np.mean(f1_scores)}")
+
     # Return the mean F1 score as the objective to minimize
     return np.mean(f1_scores)
 
@@ -125,6 +129,10 @@ def objective_temp(trial):
         model.fit(X_train, y_train)
         y_pred = model.predict(X_val)
         f1_scores.append(f1_score(y_val, y_pred))
+
+    # Print the F1 scores for each fold
+    print(f"F1 scores across folds (Temporal Set): {f1_scores}")
+    print(f"Mean F1 score (Temporal Set): {np.mean(f1_scores)}")
 
     return np.mean(f1_scores)
 
@@ -286,6 +294,8 @@ print(f"AUC-ROC: {roc_auc_test_temp}")
 print(f"Confusion Matrix:\n{conf_matrix_test_temp}")
 
 """RESULTS WITHOUT THE PROXIES
+F1 scores across folds (Random Set): [0.39752407 0.5942623  0.57962413 0.59829915 0.58954501]
+Mean F1 score (Random Set): 0.5518509330449335
 [I 2025-01-19 16:07:16,472] A new study created in memory with name: Random Set Optimization
 [I 2025-01-19 16:07:17,403] Trial 2 finished with value: 0.6082006580228909 and parameters: {'criterion': 'entropy', 'max_depth': 4, 'min_samples_split': 11, 'min_samples_leaf': 19}. Best is trial 2 with value: 0.6082006580228909.
 [I 2025-01-19 16:07:17,936] Trial 3 finished with value: 0.5788421522617615 and parameters: {'criterion': 'entropy', 'max_depth': 7, 'min_samples_split': 7, 'min_samples_leaf': 3}. Best is trial 2 with value: 0.6082006580228909.
@@ -339,6 +349,9 @@ print(f"Confusion Matrix:\n{conf_matrix_test_temp}")
 [I 2025-01-19 16:07:35,077] Trial 49 finished with value: 0.6272954073886691 and parameters: {'criterion': 'gini', 'max_depth': 5, 'min_samples_split': 12, 'min_samples_leaf': 12}. Best is trial 42 with value: 0.6275947676517447.
 Best Parameters (Random Set): {'criterion': 'gini', 'max_depth': 5, 'min_samples_split': 17, 'min_samples_leaf': 11}
 Best F1 Score (Random Set): 0.6275947676517447
+
+F1 scores across folds (Temporal Set): [0.4911032028469751, 0.5453629032258064, 0.6533383628819313, 0.5820153637596024, 0.6093220338983052]
+Mean F1 score (Temporal Set): 0.5762283733225241
 [I 2025-01-19 16:07:35,090] A new study created in memory with name: Temporal Set Optimization
 [I 2025-01-19 16:07:36,042] Trial 0 finished with value: 0.6346833760744262 and parameters: {'criterion': 'gini', 'max_depth': 5, 'min_samples_split': 11, 'min_samples_leaf': 13}. Best is trial 0 with value: 0.6346833760744262.
 [I 2025-01-19 16:07:37,006] Trial 1 finished with value: 0.5740211667786668 and parameters: {'criterion': 'gini', 'max_depth': 13, 'min_samples_split': 12, 'min_samples_leaf': 9}. Best is trial 0 with value: 0.6346833760744262.
@@ -410,10 +423,7 @@ AUC-ROC: 0.5900303952960071
 Confusion Matrix:
 [[ 924 1127]
  [ 367  936]]
-c:\Users\msegh\MaissaSeghir_thesis\Decision Tree (no proxies).py:237: ExperimentalWarning: plot_optimization_history is experimental (supported from v2.2.0). The interface can change in the future.
-  optuna.visualization.matplotlib.plot_optimization_history(study_rand)
-c:\Users\msegh\MaissaSeghir_thesis\Decision Tree (no proxies).py:242: ExperimentalWarning: plot_optimization_history is experimental (supported from v2.2.0). The interface can change in the future.
-  optuna.visualization.matplotlib.plot_optimization_history(study_temp)
+
 Test Metrics (Random Set):
 Accuracy: 0.5927251043530113
 Precision: 0.5341288782816229
@@ -431,5 +441,4 @@ F1-Score: 0.45582706766917297
 AUC-ROC: 0.6572818418560169
 Confusion Matrix:
 [[1711  292]
- [ 866  485]]
- """
+ [ 866  485]]"""
