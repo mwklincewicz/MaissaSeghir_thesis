@@ -48,12 +48,10 @@ importance_temp_df_xgb = pd.DataFrame({
 importance_temp_df_xgb = importance_temp_df_xgb[(importance_temp_df_xgb['Importance'] > 0.001) | (importance_temp_df_xgb['Importance'] < -0.001)]
 importance_temp_df_xgb.sort_values(by='Importance', ascending=False, inplace=True)
 
+# Plot Permutation Importance for the Random Set
 plt.figure(figsize=(10, 6))
 sns.barplot(x='Importance', y='Feature', data=importance_temp_df_xgb)
-plt.title('Permutation Importance (Temporal Set) - XGBoost + SSL')
-plt.xlabel('Mean Decrease in Accuracy')
-plt.ylabel('Feature')
-plt.tight_layout()
+plt.title('Permutation Importance XGBoost (temporal split)  + SSL')
 plt.show()
 
 # Semi-Supervised Learning Experiment with SSL

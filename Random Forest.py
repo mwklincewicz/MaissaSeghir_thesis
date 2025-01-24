@@ -178,7 +178,7 @@ importance_rand_df_rf.sort_values(by='Importance', ascending=False, inplace=True
 # Plot Permutation Importance for Random Set
 plt.figure(figsize=(10, 6))
 sns.barplot(x='Importance', y='Feature', data=importance_rand_df_rf)
-plt.title('Permutation Importance (Random Set)')
+plt.title('Permutation Importance RF (Random Set)')
 plt.show()
 
 # Permutation Importance for Temporal Set
@@ -193,7 +193,7 @@ importance_temp_df_rf.sort_values(by='Importance', ascending=False, inplace=True
 # Plot Permutation Importance for Temporal Set
 plt.figure(figsize=(10, 6))
 sns.barplot(x='Importance', y='Feature', data=importance_temp_df_rf)
-plt.title('Permutation Importance (Temporal Set)')
+plt.title('Permutation Importance RF (Temporal Set)')
 plt.show()
 
 # Final Test Set Evaluation for Random Set

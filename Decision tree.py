@@ -188,8 +188,8 @@ rand_importance_df.sort_values(by='Importance', ascending=False, inplace=True)
 # Plotting Permutation Importance for Random Set
 plt.figure(figsize=(10, 6))
 sns.barplot(x='Importance', y='Feature', data=rand_importance_df)
-plt.title('Permutation Importance (Random Set)')
-plt.xlabel('Mean Importance')
+plt.title('Permutation Importance DT (Random Set)')
+plt.xlabel('Importance')
 plt.ylabel('Feature')
 plt.show()
 
@@ -207,8 +207,8 @@ temp_importance_df.sort_values(by='Importance', ascending=False, inplace=True)
 # Plotting Permutation Importance for Temporal Set 
 plt.figure(figsize=(10, 6))
 sns.barplot(x='Importance', y='Feature', data=temp_importance_df)
-plt.title('Permutation Importance (Temporal Set)')
-plt.xlabel('Mean Importance')
+plt.title('Permutation Importance DT (Temporal Set)')
+plt.xlabel('Importance')
 plt.ylabel('Feature')
 plt.show()
 
